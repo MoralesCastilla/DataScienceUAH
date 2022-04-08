@@ -27,6 +27,7 @@ setwd("C:/Usuarios/pon tu direccion aqui/")
 setwd('~/MEGA/Work_UAH_BeaGal/teaching/2021/BigData en Ciencias Naturales/')
 
 
+
 # 1C ## Instalamos y cargamos los paquetes que utilizaremos durante los análisis
 install.packages("raster")
 install.packages("maptools")
@@ -93,20 +94,23 @@ plot(mapamundo)
 # Seleccionamos sólo la región de España:
 mapaspain <- mapamundo["Spain",]
 
+mapaitaliafrancia <- mapamundo[c('Italy','France'),]
+plot(mapaitaliafrancia)
+
 
 # Lo visualizamos:
 plot(mapaspain)
 
 # Seleccionamos la región de la península y Baleares "cortando" el mapa para 
 # dicha extensión geográfica específica:
-mapaspain <- crop(mapaspain,extent(-10,5,35,45))
+mapaspain <- crop(mapaspain, extent(-10,5,35,45))
 
 
 # Lo visualizamos:
 plot(mapaspain)
 
 # Lo visualizamos en gris: 
-plot(mapaspain, col="lightgrey", border="white")
+plot(mapaspain, col="lightgrey", border="black")
 
 
 
@@ -168,10 +172,16 @@ map('worldHires',add=T,col="lightgrey",lwd=1.5)
 setwd("~/MEGA/Work_UAH_BeaGal/teaching/2021/BigData en Ciencias Naturales/teoria/sig en R/vector themes/")
 land <- st_read("ne_50m_land.shp") ## 
 boundars <- st_read("ne_50m_admin_0_countries.shp")
-plot(land$geometry,col="grey",lty=0,ylim=c(30,60),xlim=c(-5,35))
+plot(land$geometry, col="grey", lty=0, ylim=c(30,60),xlim=c(-5,35))
+plot(land)
+
+land$geometry
+
 
 ## o:
-plot(boundars$geometry,col="grey",border="white",ylim=c(30,60),xlim=c(-5,35))
+plot(boundars$geometry,col="grey",border="black",ylim=c(30,60),xlim=c(-5,35))
+
+
 
 
 ## además podemos añadir batimetría
@@ -186,7 +196,7 @@ blues <- c("lightsteelblue4", "lightsteelblue3",
 plot(BATHYMET, image = TRUE, land = TRUE, lwd = 0.05,lty=0,
      ylim=c(30,65),xlim=c(-8,35),
      bpal = list(c(0, max(BATHYMET), "lightsteelblue1"),
-                 c(min(BATHYMET),0,blues)),add=T)
+                 c(min(BATHYMET),0,blues)),add=F)
 
 plot(boundars$geometry,col="grey",border="white",ylim=c(30,65),xlim=c(-8,35),add=T)
 
@@ -194,18 +204,19 @@ plot(boundars$geometry,col="grey",border="white",ylim=c(30,65),xlim=c(-8,35),add
 
 # añadir altitud - hillshade
 
-newmap <- getMap(resolution="high") 
-Spain <- newmap["Spain",]
+mapaspain
 
 # obtener datos de topografía
 altSpain <- getData('alt', country='ESP', mask=T)
 
+
 plot(altSpain)
 
 
-alt2=altSpain
-res(alt2)=0.02166666
-alt3<-resample(altSpain,alt2,method='bilinear')
+alt2 = altSpain
+res(alt2) = 0.02166666
+
+alt3 <- resample(altSpain,alt2,method='bilinear')
 plot(alt3)
 
 
@@ -230,7 +241,27 @@ lines(Spain,lwd=1.5)
 
 # 1) Haz un mapa la francia continental (Europa) excluyendo sus colonias de ultramar
 
+francia = mapamundo["France",]
+francia = crop(francia, extent(-5,10,40,52))
+plot(francia)
+
 # 2) Haz un mapa del continente sudamericano incluyendo límites de fronteras, altitudes y batimetría
+colnames(mapamundo@data)
+sudamerica = subset(mapamundo, REGION == "South America and the Caribbean") 
+plot(sudamerica)
+extent(sudamerica)
+
+BATHYMET<-getNOAA.bathy(lon1=-28.9,lon2=-118.5,lat1=33,lat2=-56, resolution=20)
+
+# dibujar batimetría
+plot(BATHYMET, image = TRUE, land = TRUE, lwd = 0.05,lty=0,
+     #ylim=c(30,65),xlim=c(-8,35),
+     bpal = list(c(0, max(BATHYMET), "lightsteelblue1"),
+                 c(min(BATHYMET),0,blues)),add=F)
+
+plot(sudamerica,col="grey62",border="grey62",add=T)
+lines(sudamerica, col="white")
+
 
 # 3) Haz un mapa de España con los elementos anteriores
 
@@ -353,6 +384,7 @@ shape_pop <- merge(shape,census,
                    by = c("cpro", "cmun"),
                    all.x = TRUE)
 
+plot(shape_pop$geometry)
 
 # obtenemos información raster para el fondo del mapa (tesela correspondiente al
 # extent de la capa shape_pop)
@@ -377,7 +409,7 @@ ggplot(remove_missing(shape_pop, na.rm = TRUE)) +
   geom_sf(aes(fill = porc_women), color = NA) +
   geom_sf(data = provs, fill = NA) +
   scale_fill_gradientn(
-    colours = hcl.colors(10, "RdYlBu", alpha = .8),
+    colours = hcl.colors(10, "RdYlBu", alpha = .4),
     n.breaks = 8,
     labels = function(x) {
       sprintf("%1.0f%%", 100 * x)
@@ -504,6 +536,7 @@ spainhypbat <- ggplot(hypsobath) +
     reverse = TRUE,
     keyheight = .8
   )) 
+
 spainhypbat
 
 
@@ -526,15 +559,16 @@ pres.lynx <- subset(lynx, select=c("country", "lat", "lon"))
 head(pres.lynx)    
 
 
+# Descartamos posibles errores:
+pres.lynx <- subset(pres.lynx, pres.lynx$lat<90)
+
+
 # Mapeando las ocurrencias de Lince sobre el mapa anterior
-
-spainhypbat + geom_point(data=pres.lynx, aes(x = lon, y = lat), color = "black")
-
 
 dev.off()
 spainhypbat +
-  geom_point(data=pres.lynx, aes(x = lon, y = lat), color = "black") +
   geom_sf(data = provs, colour='red', fill = "white", alpha = .001) +
+  geom_point(data=pres.lynx, aes(x = lon, y = lat), color = "black") +
   coord_sf(
     xlim = c(-9.5, 4.4),
     ylim = c(35.8, 44)
@@ -574,6 +608,10 @@ spainmap=newmap["Spain",]
 
 plot(spainmap)
 
+## explorar estructura del objeto shapefile
+
+spainmap@polygons[[1]]@Polygons[[1]]
+
 
 ## quedarse sólo con el polígono correspondiente a la España peninsular
 PeninSpain<-SpatialPolygons(list(
@@ -602,46 +640,21 @@ plot(PeninSpain, add=F,col="lightgrey",border="grey")
 plot(pres.lynx, pch=20, col="cyan4",add=T)
 
 
-## juega con los argumentos de plot() hasta dejar el mapa como te guste
-
-
-## cargar las capas de carreteras y ríos de España
-roads=readOGR("data/ESP_roads.shp")
-rivers=readOGR("data/ESP_water_lines_dcw.shp")
-
-## quedarse con el subconjunto de carreteras primarias
-carreteras<-roads[which(roads@data$RTT_DESCRI=="Primary Route"),]
-
-## quedarse solo con vías fluviales permanentes
-rios<-rivers[which(rivers@data$HYC_DESCRI=="Perennial/Permanent"),]
-
-
-## explorar la estructura del archivo
-summary(carreteras)
-
-## mapear el polígono penínsular, las presencias de lince y carreteras o ríos
-
-plot(PeninSpain, add=F,col="lightgrey",border="grey")
-plot(pres.lynx, pch=20, col="cyan4",add=T)
-plot(carreteras, col="firebrick4",lwd=1,add=T)
-text(-5,44,substitute(italic("a) Carreteras y presencia de lince")),cex=0.75)
-
-plot(PeninSpain, add=F,col="lightgrey",border="grey")
-plot(pres.lynx, pch=20, col="cyan4",add=T)
-plot(rios, col="steelblue",lwd=0.75,add=T)
-text(-5,44,substitute(italic("b) Ríos y presencia de lince")),cex=0.75)
-
-
 # guardar el shapefile de puntos
 writePointsShape(pres.lynx, "data/presenciaslince")
+td <- file.path(getwd(), "data") 
+#dir.create(td)
 
-# guardar el shapefile de líneas
-writeLinesShape(carreteras, "data/carreteras")
+writeOGR(pres.lynx, dsn=td, 
+         layer="presenciaslince", driver="ESRI Shapefile")
+
 
 # guardar el shapefile de polígonos
 # para salvar hemos de convertir a un objeto SpatialPolygonsDataFrame primero
 PeninDF<-SpatialPolygonsDataFrame(PeninSpain,data=data.frame(ID=1))
-writePolyShape(PeninDF, "data/Espanapenin.shp")
+writeOGR(PeninDF, dsn=td, 
+         layer="Espanapenin", driver="ESRI Shapefile")
+
 
 # leer/cargar los shapefiles guardados (ejemplo con archivo de pntos)
 presencias.lynx <- readShapePoints("data/presenciaslince.shp")
@@ -649,35 +662,78 @@ plot(presencias.lynx)
 
 
 
-## La función `drawPoly` sirve para digitalizar objetos vectoriales (polígonos)
-plot(PeninSpain, add=F,col="lightgrey",border="grey")
-plot(pres.lynx, pch=20, col="cyan4",add=T)
+# cargamos capa de parques nacionales
 
-# puedes digitalizar un polígono en torno a las presencias observadas, haciendo
-# click en el mapa y pulsando ESC al terminar
-rangolince <- drawPoly()  
+pns<-readOGR("../../../../Work_UAH_postdoc/Teaching2018/SIG en R/data/Red_PN_LIM/LIM/Limites_PyB.shp")
 
-summary(rangolince)    
-
-plot(rangolince,col=adjustcolor("orange",0.4),add=T)
-
-## alternativamente podeis crear una envolvente convexa (convex hull)
-rangolince.ch<-chull(coordinates(pres.lynx))
-rangolince.ch<-c(rangolince.ch,rangolince.ch[1])
-
-# la dibujamos
-polygon(coordinates(pres.lynx)[rangolince.ch,],col=adjustcolor("red",0.3),add=T)
+plot(pns, col='red', add=T)
 
 
-# asignarle un sistema de coordenadas
-crs.geo <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84")
-
-proj4string(rangolince) <- crs.geo 
-rangolince<-SpatialPolygonsDataFrame(rangolince,data=data.frame(ID=1))
-writePolyShape(rangolince, "data/rangolince.shp")
+# comprobamos la proyección
+projection(pns)
 
 
+# cambiar la proyección de UTM a WGS con spTransform
+pns.geo<-spTransform(pns,crs.geo)
 
+# comprobamos la proyección
+projection(pns.geo)
+
+
+plot(pns.geo,add=T)
+
+# nos quedamos solo con el nombre de cada parque en los datos y 
+# quitamos el parque de Baleares
+pns.geo@data$NOM_PARQUE
+
+pnsSpain<-pns.geo[-1,1]
+
+
+## extraer datos resultantes de solapar dos capas shapefile
+pres.lynx
+pns.geo
+
+lynxinpark <- over(pns.geo,pres.lynx)
+lynxinpark <- over(pres.lynx,pns.geo)
+table(lynxinpark$NOM_PARQUE[!is.na(lynxinpark$NOM_PARQUE)])
+
+
+## extract data from raster to polygon
+tempmax <- getData("worldclim", var="tmax", res=10)   
+
+
+plot(tempmax[[1]],main="Temperatura máxima Enero")
+plot(tempmax[[7]],main="Temperatura máxima Julio")
+
+
+
+# Vamos a leer archivos ráster correspondientes a las temperaturas y precipitaciones del 15 de enero y del 15 de julio de 2007 en España: 
+temp.Spain.jan07<-raster("~/MEGA/Work_UAH_postdoc/Teaching2018/SIG en R/data/temp.Spain.jan07.tif")
+temp.Spain.jul07<-raster("~/MEGA/Work_UAH_postdoc/Teaching2018/SIG en R/data/temp.Spain.jul07.tif")
+
+# Mapear los ráster cargados:
+plot(temp.Spain.jan07,main="Temperatura máxima 15 Enero 2007")
+plot(temp.Spain.jul07,main="Temperatura máxima 15 Julio 2007")
+
+
+
+
+# Podemos cortar archivos raster con el comando `crop()`. 
+# Esto puede hacerse bien en base a un extent() indicando coordenadas
+# máximas y mínimas (xmin, xmax, ymin, ymax): 
+extent.spain <- extent(-9.35, 4.45, 35.95, 43.85)
+temp.jan.world.cropped<-crop(tempmax[[1]],extent.spain)
+
+plot(temp.jan.world.cropped)
+temp.Spain.jan07<-raster("~/MEGA/Work_UAH_postdoc/Teaching2018/SIG en R/data/temp.Spain.jan07.tif")
+
+
+## extraer valores a partir del archivo raster
+plot(temp.Spain.jan07)
+plot(pns.geo, add=T)
+
+tempjanPN <- extract(temp.Spain.jan07,pns.geo)
+names(tempjanPN) <- pns.geo$NOM_PARQUE
 
 #'########
 # PASO 7: Ejercicios seminario II ####

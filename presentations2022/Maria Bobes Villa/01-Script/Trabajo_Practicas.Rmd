@@ -1,0 +1,389 @@
+---
+title: "Trabajo de Practicas"
+author: "Maria Bobes Villa"
+date: "11/3/2022"
+output: html_document
+
+---
+
+# Relacion entre diferentes parametros y el vertido de residuos dentro de las distintas demarcaciones hidrograficas
+
+```{r Setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE)
+
+#install.packages("tidyverse")
+#install.packages("here")
+#install.packages("ggthemes")
+#install.packages("wesanderson")
+#install.packages("sf")
+#install.packages("mapSpain")
+#install.packages("RColorBrewer")
+#install.packages("ggmap")
+#install.packages("leaflet")
+#install.packages("RColorBrewer")
+#install.packages("htmlwidgets")
+#install.packages("patchwork")
+#install.packages("ggplot2")
+
+library(tidyverse)
+library(here)
+library(ggthemes)
+library(wesanderson)
+library(sf)
+library(mapSpain)
+library(RColorBrewer)
+library(ggmap)
+library(leaflet)
+library(RColorBrewer)
+library(htmlwidgets)
+library(patchwork)
+library(ggplot2)
+
+```
+
+## 1. Problema ambiental
+
+El volumen de aguas residuales que se genero en España durante el año 2020 fue de 19.242 hm3. 
+Tomando como analogía el volumen del Mar Menor, serian necesarios unos 33 "Mares Menores" para contener toda esa cantidad de agua residual.
+El volumen de vertidos varia considerablemente entre unas y otras demarcaciones. La superficie de estas, la población asentada y la actividad industrial presente en esos territorios son factores que influyen en la cantidad de residuos que se vierten en las zonas costeras y de transicion. 
+Con este proyecto se pretende comparar las diferentes Demarcaciones Hidrograficas y saber cual de los parámetros es mas determinante en la cantidad de vertidos de aguas residuales para poder atajar de la forma más adecuada el problema de la contaminacion en las zonas costeras y de transicion.
+
+## 2. Objetivos
+
+Este trabajo presenta dos objetivos claros para intentar buscar el origen de la alta produccion de aguas residuales en España:
+
+- Comparar las DDHH para saber cual de ellas produce mas vertidos.
+- Ver cual es el parametro (area, poblacion o industrias) mas determinante a la hora de los vertidos.
+
+## 3. Fuentes de datos
+
+Para realizar este trabajo se usaron fundamentalmente informes y datos del Miniaterio para la Transicion Ecologica y el Reto Demografico de España.
+
+Informacion correspondiente a la Demarcacion Hidrografica del Cantabrico Occidental:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/04-coc_2020_vf_tcm30-481567.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica del Cantabrico Oriental:
+<https://www.miteco.gob.es/fr/agua/temas/planificacion-hidrologica/03-cor_2020_vf_tcm36-481566.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica de Ceuta:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/24-ceu_2020_vf_tcm30-481583.pdf>
+
+Informacion correspondiente al Distrito de la Cuenca Fluvial de Catalunya:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/15-cat_2020_vf_tcm30-481574.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica de las Cuencas Mediterraneas Andaluzas:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/09-cma_2020_vf_tcm30-481594.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica del Duero:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/05-due_2020_vf_tcm30-481568.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica del Ebro:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/14-ebr_2020_vf_tcm30-481573.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica de Galicia Costa:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/02-gal_2020_vf_tcm30-481565.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica de Gran Canaria:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/17-gca_2020_vf_tcm30-481576.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica del Guadalete y Barbate:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/10-gyb_2020_vf_tcm30-481595.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica del Guadalquivir:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/08-gdq_2020_vf_tcm30-481571.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica del Guadiana:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/07-gdn_2020_vf_tcm30-481570.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica de las Illes Balears:
+<https://www.miteco.gob.es/eu/agua/temas/planificacion-hidrologica/16-bal_2020_vf_tcm35-481575.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica del Jucar:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/13-juc_2020_vf_tcm30-481597.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica de Melilla:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/25-mel_2020_vf_tcm30-481584.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica del Mino-Sil:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/01-min_2020_vf_tcm30-481564.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica del Segura:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/12-seg_2020_vf_tcm30-481572.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica del Tajo:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/06-taj_2020_vf_tcm30-481569.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica de Tenerife:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/20-ten_2020_vf_tcm30-481579.pdf>
+
+Informacion correspondiente a la Demarcacion Hidrografica del Tinto, Odiel y Piedras:
+<https://www.miteco.gob.es/es/agua/temas/planificacion-hidrologica/11-top_2020_vf_tcm30-481596.pdf>
+
+Informacion correspondiente al Censo Nacional de Vertidos:
+<https://www.miteco.gob.es/es/agua/temas/concesiones-y-autorizaciones/vertidos-de-aguas-residuales/censo-vertidos/>
+
+El primer paso fue cargar las tablas con los datos en bruto obtenidos de las fuentes previamente mostradas.
+
+```{r Cargar los datos, echo=TRUE}
+
+hab_area <- read_delim(here("03-Clean", "Informacion_DDHH.csv")) %>%
+  mutate(DDHH = str_trim(DDHH))
+
+vertidos<- read_delim(here("03-Clean", "Vertidos_DDHH.csv"))
+#vertidos <- read.csv("03-Clean/Vertidos_DDHH.csv", sep=";",dec="," )
+
+```
+
+Se cargaron dos tablas, una con los datos de vertidos y otra con los datos de superficie y numero de habitantes de cada demarcacion hidrografica correspondientes al año 2021.
+
+Despues se procedio a seleccionar las columnas de interes para el estudio.
+
+```{r Seleccionar solo las columnas de interes, echo=TRUE}
+
+vertidos_sel<- vertidos %>% 
+  select(DDHH, Vertidos_industrial, Volumen_total)   
+
+vertidos_sel_fil <- vertidos_sel[-18,]
+
+```
+
+Una vez con los datos seleccionados, se unieron ambas tablas para generar una que contuviera toda la informacion necesaria para relaizar el trabajo.
+
+```{r Unir las dos tablas, echo=TRUE}
+
+ddhh_data <- full_join(x = hab_area, y = vertidos_sel_fil, by = "DDHH")
+#ddhh_data <- merge(x = hab_area, y = vertidos_sel_fil, by = "DDHH", all = TRUE) 
+
+```
+ 
+ Se obtuvo una tabla resumen de todas las demarcaciones.
+ 
+## 4. Resultados
+ 
+ Para comenzar a responder a nuestras pregunras, el primer paso fue realizar un grafico en el que se pudiese comparar los vertidos producidos por las diferentes demarcaciones para saber cuales eran las mas contaminantes.
+ 
+```{r Grafica que compara el volumen de vertidos de las demarcaciones hidrografiCas, echo=TRUE}
+ 
+grafica_vertidos_ddhh <- ggplot(data = vertidos_sel_fil, aes(x = reorder(DDHH, -Volumen_total), y = Volumen_total))+
+  geom_bar(stat = "identity", 
+           fill = "lightblue")+
+  labs(x = "Demarcaciones Hidrográficas",
+       y = "Volumen de vertidos (m3/año)",
+       title = "Volumen de vertidos por Demarcación Hidrográfica") +
+    theme_classic()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+grafica_vertidos_ddhh 
+
+ggsave(
+  plot = grafica_vertidos_ddhh,
+  here("04-Figuras", "grafica_vertidos_ddhh.png"),
+  width = 20, height = 14)
+
+```
+
+El siguiente paso fue comenzar a relacionar los parametros de interes con las produccion de vertidos para el total de España.
+
+La primera grafica que se realizo fue la que relacionaba el numero de habitantes con el volumen de vetidos.
+
+```{r Grafica que relacion volumen de vertidos con numero de habitantes, echo=TRUE}
+
+lines_points <- lines+
+  geom_point(colors = "black", alpha = 0.5)
+
+grafica_hab_vertidos <- ggplot(data = ddhh_data, aes(x = Habitantes, y = Volumen_total))+
+  geom_point()+
+  labs(x = "Número de habitantes",
+       y = "Volumen de vertidos (m3/año)",
+       title = "Relación entre habitantes y vertidos") +
+  theme_classic()+
+  lines_points+
+  geom_smooth(color = "purple",
+              fill = "purple",
+              method = "lm")
+
+grafica_hab_vertidos
+
+ggsave(
+  plot = grafica_hab_vertidos,
+  here("04-Figuras", "grafica_hab_vertidos.png"),
+  width = 20, height = 14)
+
+```
+
+Despues se analizo la relacion del segundo parametro, el area, con la produccion de vertidos.
+
+```{r Grafica que relacion volumen de vertidos con el area, echo=TRUE}
+
+lines_points <- lines+
+  geom_point(color = "black", alpha = 0.5)
+
+grafica_area_vertidos <- ggplot(data = ddhh_data, aes(x = Area, y = Volumen_total))+
+  geom_point()+
+  labs(x = "Area (km2)",
+       y = "Volumen de vertidos (m3/año)",
+       title = "Relación entre área y vertidos") +
+  theme_classic()+
+   lines_points+
+  geom_smooth(color = "blue",
+              fill = "blue",
+              method = "lm")
+
+grafica_area_vertidos
+
+ggsave(
+  plot = grafica_area_vertidos,
+  here("04-Figuras", "grafica_area_vertidos.png"),
+  width = 20, height = 14)
+
+```
+
+Por ultimo se elaboro la grafica que relacionaba el numero de industrias con la generacion de vertidos.
+
+```{r Grafica que relacion volumen de vertidos con el numero de industrias, echo=TRUE}
+
+lines_points <- lines+
+  geom_point(color = "black", alpha = 0.5)
+
+grafica_indust_vertidos <- ggplot(data = ddhh_data, aes(x = Vertidos_industrial, y = Volumen_total))+
+  geom_point()+
+  labs(x = "Número de industrias",
+       y = "Volumen de vertidos (m3/año)",
+       title = "Relación entre industrias y vertidos") +
+  theme_classic()+
+   lines_points+
+  geom_smooth(color = "hotpink",
+              fill = "hotpink",
+              method = "lm")
+
+grafica_indust_vertidos 
+
+ggsave(
+  plot = grafica_indust_vertidos,
+  here("04-Figuras", "grafica_indust_vertidos.png"),
+  width = 20, height = 14)
+
+```
+
+Para tener una mejor visualizacion de los datos se procedio a elaborar una grafica resumen que contuviera todas las graficas realizadas hasta el momento.
+
+```{r Resumen de todas las graficas, echo=TRUE}
+
+grafica_final <- (grafica_vertidos_ddhh) /
+  (grafica_hab_vertidos + grafica_area_vertidos + grafica_indust_vertidos) +
+  plot_annotation(
+    title = expression(paste("Comparación de los vertidos en las diferentes Demarcaciones Hidrográficas y su relación con diferentes parámetros")),
+    caption = "   Fuente de datos:
+      - Ministerio para la Transición Ecológica y el Reto Demografico <https://www.miteco.gob.es>.
+    Gráficas: Maria Bobes Villa, estudiante de ´Ciencia de Datos Práctica: Resolución de Problemas Ambientales Mediante Proyectos` (Universidad de Alcalá). ",
+    theme = theme(
+      plot.title = element_text(size = 24, face = "bold"),
+      plot.caption = element_text(hjust = 0, size = 14, color = "grey50", margin = margin(t = 25))
+      ))
+
+grafica_final 
+
+ggsave(
+  plot = grafica_final,
+  here("04-Figuras", "grafica_final.png"),
+  width = 20, height = 14)
+
+```
+
+Por ultimo se realizo un mapa interactivo que permite localizar  las diferentes demarcaciones, clasificandolas por el volumen de vertidos que generan para observar mejor como se distribuyen en el territorio español, asi como poder ver los diferentes parametros que las caracterizan.
+
+```{r Mapa interactivo}
+
+mapacuencas <- esp_get_hydrobasin(domain = "land") %>%
+  filter(rotulo != "CEUTA" &
+           rotulo != "EL HIERRO" &
+           rotulo != "FUERTEVENTURA" &
+           rotulo != "GRAN CANARIA" &
+           rotulo != "LA GOMERA" &
+           rotulo != "LA PALMA" &
+           rotulo != "LANZAROTE" &
+           rotulo != "LA GOMERA" &
+           rotulo != "MELILLA" &
+           rotulo != "TENERIFE") %>%
+  mutate(rotulo = sort(rotulo)) #sort me ordena caracteres y arrange solo numeros
+  
+#view(mapacuencas)
+
+###
+geom_mapacuencas <- select (mapacuencas, geom)
+
+#view(geom_mapacuencas)
+
+#geom_ordenado <- geom_mapacuencas %>% arrange (factor(geom = geom[c(2,5,6,12,8,7,16,14,9,11,15,10,3,13,1,4)]))
+#geom_ordenado <- geom_mapacuencas [ , c(2,5,6,12,8,7,16,14,9,11,15,10,3,13,1,4)]
+#geom_ordenado = subset (geom_mapacuencas, select=c(2,5,6,12,8,7,16,14,9,11,15,10,3,13,1,4))
+###
+
+vertidos_sin_canarias <- vertidos_sel_fil[-12,]
+
+ddhh_data_sin_canarias <- ddhh_data [-12,]
+
+volumen_solo <- vertidos_sin_canarias %>%
+  dplyr::select(Volumen_total) %>%
+  as_vector()
+
+area_solo <- ddhh_data_sin_canarias %>%
+  dplyr::select(Area) %>%
+  as_vector()
+
+hab_solo <- ddhh_data_sin_canarias %>%
+  dplyr::select(Habitantes) %>%
+  as_vector()
+
+industrias_solo <- vertidos_sin_canarias %>%
+  dplyr::select(Vertidos_industrial) %>%
+  as_vector()
+
+mapacuencas_total <- mapacuencas %>%
+  mutate(volumen = volumen_solo/1000000) %>%
+  mutate(area = area_solo ) %>%
+  mutate(habitantes = hab_solo )  %>%
+  mutate(industrias = industrias_solo )
+
+#view(mapacuencas_total)
+
+colores <- seq(min(mapacuencas_total$volumen), (max(mapacuencas_total$volumen)+1), length = 11)
+
+paleta <- colorBin(palette="Purples",
+                      domain=mapacuencas_total$volumen,
+                      bins=colores)
+texto <- paste( 
+  "Vertidos: ", mapacuencas_total$volumen, "<br/>",
+  "Habitantes: ", mapacuencas_total$habitantes, "<br/>", 
+  "Area: ", mapacuencas_total$area, "<br/>",
+  "Industrias: ", mapacuencas_total$industrias,
+  sep="") %>%
+  lapply(htmltools::HTML)
+
+ddhh_data_mapa <- leaflet::leaflet(mapacuencas_total)%>%
+  leaflet::addPolygons(color = "#222",
+                       weight = 2,
+                       opacity = 1,
+                       fillColor = ~paleta(mapacuencas_total$volumen),
+                       fillOpacity = 0.7,
+                       popup = ~volumen,
+                       label = texto,
+                       labelOptions = labelOptions(style = list("font-weight" = "normal",
+                       padding = "3px 8px"),
+                       textsize = "13px")) %>% 
+  addLegend(pal = paleta, values = ~volumen, opacity = 0.9,
+title = "Volumen de vertidos (km3/año)")
+
+ddhh_data_mapa
+
+```
+
+## 5. Conclusion
+
+Como se puede observar en la grafica, las demarcaciones hidrograficas mas contaminantes en cuanto al volumen de vertidos son  Ebro y  Cuencas Mediterranaes Andaluzas, seguidas de Islas Canarias y Galicia-Costa. En general las demarcaciones más grandes son las que generan mas vertidos, con algunas excepciones como Canarias, que puede deberse a su elevada superficie costera.
+En cuanto a cual de los factores mas determinante a la hora del vertido de aguas residuales, fue dificil de determinar debido a la escasez de datos (solo del año 2021). Pero en base a estos, se puede ver que el parametro que mas influye es el area, seguio del numero de industrias y por ultimo el numero de habitantes.
+Posiblemente con una mayor cantidad de datos de años pasados podria determinarse mejor cual es la relacion entre los parametros estudiados y el vertido de residuos, lo cual podria verse como otro futuro estudio.
+El hecho de que el area sea el factor más determinante era esperable, ya que a mas superficie más vertidos se generarán, pero es algo sobre lo que no se puede actuar. Por eso para intentar reducir el volumen de vertidos en zonas de transicion el foco deberia ponerse en el segundo parametro mas determinante, las industrias.
+Para  atajar el problema ha de reducirse el numero de residuos que estas generan o aplicar una mejor gestion de los mismos.
+

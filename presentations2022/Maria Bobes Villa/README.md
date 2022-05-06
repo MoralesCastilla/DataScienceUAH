@@ -1,0 +1,2 @@
+# Trabajo de Practicas
+En este repositorio está toda la informacion utilizada para elaborar el trabajo de prácticas de título "Relacion entre diferentes parametros y el vertido de residuos dentro de las distintas Demarcaciones Hidrograficas", así como los resultados obtenidos en el analisis.

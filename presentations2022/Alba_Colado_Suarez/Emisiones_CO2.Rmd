@@ -1,0 +1,454 @@
+---
+title: "Las emisiones de CO~2~: una de las causas que ocasiona el cambio climático propiciado por la actividad humana"
+author: "Alba Colado Suarez"
+date: "11/3/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(here)
+library(ggthemes)
+library(lubridate)
+library(wesanderson)
+library(sf)
+library(leaflet)
+library(ggmap)
+library(RColorBrewer)
+library(htmlwidgets)
+library(mapSpain)
+library(ggplot2)
+library(patchwork)
+
+```
+
+# 1. Problema ambiental
+
+Entre las causas del cambio del clima que estamos experimentando actualmente, podriamos destacar las emisiones de CO~2~ como un factor relevante, encontrandose estas dentro de los conocidos gases de efecto invernadero. La actividad humana esta haciendo que estos gases tengan un efecto sobre la atmosfera, aumentando su capacidad en la conservacion  del calor, dando lugar a este fenomeno.
+Para evaluar si realmente la actividad humana es un factor a considerar culpable del aumento de temperaturas y del nivel del mar o del deshielo, se han tomado como referencia datos de las emisiones en todo el territorio peninsular, Ceuta y Melilla asi como los archipielagos de las Islas Baleares y las Islas Canarias. Tambien se han recopilado datos de empresas y habitantes en cada comunidad, intentando llegar a la conclusion de que estos dos son factores que propician el cambio climatico.
+De acuerdo con lo que expone la Comisión Europea, la hipótesis de las empresas debería cumplirse, ya que los niveles en el anyo 2020 alcanzaban unos valores que practicamente doblaban los registrados antes de la industrializacion (aproximadamente en 1750).
+Aclaracion: durante todo el trabajo las cifras de las emisiones son expresadas en terminos de CO~2~ equivalente (CO~2~-eq)
+
+```{r Raw}
+
+co2 <- read_delim(here("03-Clean", "Emisiones_por_CCAA.csv"))
+empresas <- read_delim(here("03-Clean", "Empresas_por_comunidad_autonoma.csv"))
+pobl <- read_delim(here("03-Clean", "Poblacion_2020.csv"))
+
+View(co2)
+View(empresas)
+View(pobl)
+
+```
+
+# 2. Objetivos
+
+-   Demostrar que la actividad humana tiene impacto sobre las emisiones de CO~2~
+-   Analizar si el numero de empresas influye en la cantidad de emisiones que se registran por comunidad
+-   Analizar si hay relacion entre el numero de habitantes y las emisiones recogidas por comunidad
+
+```{r Tidy data}
+
+co2_data <- co2 %>% 
+  pivot_longer(
+    cols = "2005":"2019",
+    names_to = "Anyo",
+    values_to = "Valor"
+  )
+
+glimpse(co2_data)
+
+nrow(co2)
+nrow(co2_data)
+
+view(co2_data)
+
+empresas_data <- empresas %>% 
+  pivot_longer(
+    cols = "2020":"2021",
+    names_to = "Anyo",
+    values_to = "Empresas"
+  )
+
+glimpse(empresas_data)
+
+nrow(empresas)
+nrow(empresas_data)
+
+view(empresas_data)
+
+```
+
+# 3. Datos
+
+-   Emisiones de CO~2~ por comunidad autonoma de 2015-2019 <https://www.miteco.gob.es/es/calidad-y-evaluacion-ambiental/temas/sistema-espanol-de-inventario-sei-/emisionesgeiporccaaserie1990-2019_tcm30-524644.pdf>
+
+-   Empresas por comunidad autonoma para 2020 y 2021 <https://es.statista.com/estadisticas/527575/numero-de-empresas-en-espana-por-comunidad-autonoma/>
+
+-   Numero de habitantes por comunidad autonoma para 2020 <https://www.ine.es/jaxiT3/Datos.htm?t=2853>
+
+# 4. Metodologia empleada
+
+-   Elaboracion de hipotesis en base a un problema ambiental
+-   Descargar los datos referentes a las hipotesis
+-   Tratamiento de los datos
+-   Creacion de figuras en base a las hipotesis
+-   Resultados y conclusiones
+
+# 5. Procedimiento
+
+## Tabla con la media de los valores
+
+```{r Media valores CO2}
+
+co2_all <- co2_data%>% 
+  group_by(Comunidad) %>% 
+  summarise(
+    co2mean = mean(Valor)
+    )
+
+empresas_all <- empresas_data%>%
+  group_by(Comunidad) %>%
+  summarise(
+    empresasmean = mean(Empresas)
+  )
+
+```
+
+
+```{r Join}
+
+tabla_kk <- merge(x = co2_all, y = empresas_all)
+tabla_conanyo <- merge(x = tabla_kk, y = pobl)
+tabla_final <- tabla_conanyo %>%
+  dplyr::select(Comunidad, co2mean, empresasmean, Hab)
+
+```
+
+Para hacer la tabla final que incluye las variables: Comunidad Autonoma, Niveles de CO~2~, Numero de habitantes y Numero de empresas, hubo que hacer una seleccion de datos para tener las tres tablas con el mismo numero de filas
+En el caso del Numero de habitantes no hizo falta hacer ninguna operacion, ya que solo habia un anyo
+En la tabla del CO~2~ para cada Comunidad Autonoma se hizo una media de los valores de CO~2~ disponibles entre el 2005 y el 2019
+En la tabla de Numero de empresas tambien se hizo una media entre los valores de 2020 y 2021 para cada Comunidad
+Asi, en cada tabla tendriamos el mismo formato: tres columnas y 19 filas
+
+## Grafica para evaluar los niveles de CO~2~ desde 2005 hasta 2019
+
+```{r Grafica Anyo y CO2 separado}
+
+co2_anyos_ca <- ggplot(data = co2_data, aes(x = Anyo, y = Valor))+
+  geom_point(aes(color = Comunidad),
+             size = 2,
+             alpha = 0.5)+
+  geom_smooth(aes(color = Comunidad,
+                  method = "lm"))+
+  ggtitle(expression(paste("Niveles de "~CO[2], " por año")))+
+  labs(x = "Año", 
+       y = "Valor "~CO[2]~(kt),"")+
+  theme_classic()+
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 45,
+                                   hjust = 1))+
+  scale_x_discrete(breaks=c("2005", "2010", "2015", "2019"))
+
+
+co2_anyos_ca+
+  facet_wrap(.~ Comunidad)
+
+ggsave(
+  plot = co2_anyos_ca+
+  facet_wrap(.~ Comunidad),
+  here("04-Figuras", "co2_anyos_ca.png"),
+  width = 10, height = 8
+)
+
+
+```
+En unas cuantas Comunidades autonomas se tiende a ver en el ultimo anyo registrado una tendencia decreciente de las emisiones de CO~2~, aunque no se dispongan de los datos de 2020 cabria pensar que la tendencia seguiria siendo decreciente, principalmente por el paron globalizado que hubo en este anyo debido a la crisis sanitaria del COVID-19
+
+```{r Grafica Anyo y CO2 junto}
+
+co2_anyos <- ggplot(data = co2_data, aes(x = Anyo, y = Valor))+
+  geom_point(aes(color = Comunidad,
+                 group = Comunidad),
+             size = 2,
+             alpha = 0.5)+
+  geom_line(aes(color = Comunidad,
+                group = Comunidad))+
+  labs(x = "Año", 
+       y = "Valor "~CO[2]~(kt),"")+
+  ggtitle(expression(paste("Niveles de "~CO[2], " por año")))+
+  theme_classic()+
+  theme(legend.position = "right",
+        axis.text.x = element_text(angle = 45,
+                                   hjust = 1))
+
+co2_anyos
+
+ggsave(
+  plot = co2_anyos,
+  here("04-Figuras", "co2_anyos.png"),
+  width = 10, height = 8
+)
+
+
+```
+## Grafica para observar que Comunidades Autonomas presentan mayores niveles de CO~2~
+
+```{r Grafica Comunidad y CO2}
+
+comunidad_co2 <- ggplot(data = co2_data, aes(x = reorder(Comunidad, -Valor), y = Valor))+
+  geom_boxplot(aes(fill = Comunidad))+
+  theme_gdocs()+
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 45,
+                                   hjust = 1))+
+  labs(x = "Comunidad Autónoma", 
+       y = "Valor "~CO[2]~(kt),"")+
+  ggtitle(expression(paste("Niveles de "~CO[2], " por Comunidad Autónoma")))
+
+comunidad_co2
+
+ggsave(
+  plot = comunidad_co2,
+  here("04-Figuras", "comunidad_co2.png"),
+  width = 12, height = 8
+)
+
+```
+
+Las comunidades con niveles de CO~2~ mas elevados serian (respectivamente) Andalucia, Cataluna y Castilla y Leon
+
+## Grafica para observar que Comunidades Autonomas presentan mayor numero de habitantes
+
+```{r Grafica Comunidad y Habitantes}
+
+hab_comunidad <- ggplot(data = pobl, aes(x = reorder(Comunidad, -Hab), y = Hab))+
+  geom_bar(aes(fill = Comunidad),
+           stat = "identity"
+           )+
+  theme_gdocs()+
+  labs(x = "Comunidad Autónoma", 
+       y = "Número habitantes",
+       title = "Número de habitantes por Comunidad Autónoma")+
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 45,
+                                   hjust = 1))
+
+hab_comunidad
+
+ggsave(
+  plot = hab_comunidad,
+  here("04-Figuras", "hab_comunidad.png"),
+  width = 12, height = 8
+)
+
+```
+
+Las comunidades con mayor poblacion son Andalucia, Cataluna y Madrid
+
+## Grafica para observar que Comunidades Autonomas presentan mayor numero de empresas
+
+```{r Grafica por Comunidad y empresas}
+
+comunidad_empresas <- ggplot(data = empresas_data, aes(x = reorder(Comunidad, -Empresas), y = Empresas))+
+  geom_bar(aes(fill = Comunidad),
+           stat = "identity",
+           )+
+  theme_gdocs()+
+  labs(x = "Comunidad Autónoma", 
+       y = "Número empresas",
+       title = "Numero de empresas por Comunidad Autónoma")+
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 45,
+                                   hjust = 1))
+
+comunidad_empresas
+
+ggsave(
+  plot = comunidad_empresas,
+  here("04-Figuras", "comunidad_empresas.png"),
+  width = 12, height = 8
+)
+
+```
+
+Las comunidades con mayor numero de empresas se corresponden con Cataluna en primer lugar, seguido por Madrid y Andalucia
+
+## Grafico para evaluar si los habitantes influyen en los niveles de CO~2~
+
+```{r Grafico de dispersion CO2 y habitantes}
+
+lines_points <- lines+
+  geom_point(colors = "saddlebrown", alpha = 0.5)
+
+relacion_co2_hab <- ggplot(data = tabla_final, aes(x = Hab, y = co2mean))+
+  geom_point()+
+  labs(x = "Número Habitantes",
+       y = "Valor "~CO[2]~(kt),"",
+       title = "Relación entre habitantes y emisiones")+
+  theme_few()+
+  lines_points+
+  geom_smooth(color = "Red",
+              fill = "Red",
+              method = "lm")
+
+relacion_co2_hab
+
+ggsave(
+  plot = relacion_co2_hab,
+  here("04-Figuras", "relacion_co2_hab.png"),
+  width = 10, height = 8
+)
+
+```
+Podemos concluir que realmente las emisiones si estan afectadas por la cantidad de poblacion, ya que, como observamos en la grafica, a mayor numero de habitantes, los valores de CO~2~ tambien son cada vez mas elevados
+
+## Grafico para evaluar si las empresas influyen en los niveles de CO~2~
+
+```{r Grafico de dispersion CO2 y empresas}
+
+lines_points <- lines+
+  geom_point(colors = "saddlebrown", alpha = 0.5)
+
+relacion_co2_empresas <- ggplot(data = tabla_final, aes(x = empresasmean, y = co2mean))+
+  geom_point()+
+  labs(x = "Número Empresas",
+       y = "Valor "~CO[2]~(kt),"",
+       title = "Relación entre empresas y emisiones")+
+  theme_few()+
+  lines_points+
+  geom_smooth(color = "Purple",
+              fill = "Purple",
+              method = "lm")
+
+relacion_co2_empresas
+
+ggsave(
+  plot = relacion_co2_empresas,
+  here("04-Figuras", "relacion_co2_empresas.png"),
+  width = 10, height = 8
+)
+
+```
+Al igual que el caso presentado en el grafico anterior, el numero de empresas tambien influye en la contaminacion ambiental.
+Observamos que un mayor numero de empresas registra valores mas elevados de CO~2~
+
+## Grafico para evaluar si un mayor numero de habitantes implica que tambien haya un mayor numero de empresas
+
+```{r Grafico de dispersion Habitantes y Empresas}
+
+lines_points <- lines+
+  geom_point(colors = "saddlebrown", alpha = 0.5)
+
+relacion_hab_empresas <- ggplot(data = tabla_final, aes(x = Hab, y = empresasmean))+
+  geom_point()+
+  labs(x = "Número Habitantes",
+       y = "Número Empresas",
+       title = "Relación entre empresas y habitantes")+
+  theme_few()+
+  lines_points+
+  geom_smooth(color = "Blue",
+              fill = "Blue",
+              method = "lm")
+
+relacion_hab_empresas
+
+ggsave(
+  plot = relacion_hab_empresas,
+  here("04-Figuras", "relacion_hab_empresas.png"),
+  width = 10, height = 8
+)
+
+```
+Cuantos mas habitantes tenga una comunidad, mayor numero de empresas tendra. Por lo que cabe pensar que las comunidades mas afectadas seran Catalunya, Madrid y Andalucia
+
+## Mapa dinamico por Comunidades Autonomas que repesenta los valores de emisiones, de habitantes y de empresas
+
+```{r Mapa dinamico emisiones CO2}
+
+mapa1 <- esp_get_ccaa()
+
+CO2_solo <- tabla_final%>%
+  dplyr::select(co2mean)
+
+empresas_solo <- tabla_final%>%
+  dplyr::select(empresasmean)
+
+pobl_solo <- tabla_final%>%
+  dplyr::select(Hab)
+
+Com_nombre <- mapa1%>%
+  mutate(CO2_solo, empresas_solo, pobl_solo)
+
+mycolors <- c(min(Com_nombre$co2mean): (max(Com_nombre$co2mean)+1))
+mypalette <- colorBin(palette="YlOrBr", 
+                      domain=Com_nombre$co2mean, 
+                      na.color="transparent", 
+                      bins=mycolors)
+
+mytext <- paste(
+  "Comunidad: ", Com_nombre$ine.ccaa.name,"<br/>", 
+  "Valor: ", round(Com_nombre$co2mean, 2), "<br/>",
+  "Empresas: ", Com_nombre$empresasmean, "<br/>",
+  "Habitantes: ", Com_nombre$Hab, "<br/>",
+  sep="") %>%
+  lapply(htmltools::HTML)
+
+
+comunidad_mapa <- leaflet::leaflet(Com_nombre)%>%
+  leaflet::addPolygons(color = "#666",
+                       weight = 2,
+                       opacity = 1,
+                       fillColor = ~mypalette(Com_nombre$co2mean),
+                       fillOpacity = 0.7,
+                       popup = ~co2mean,
+                       label = mytext,
+                       labelOptions = labelOptions(style = list("font-weight" = "normal",
+                       padding = "3px 8px"), 
+                       textsize = "13px",
+                       direction = "auto"))
+
+saveWidget(comunidad_mapa,
+           file=paste0(getwd(),"/04-Figuras/comunidad_mapa.html"))
+
+
+```
+
+Opcion alternativa por si la otra da error: mycolors <- seq.int(min(Com_nombre$co2mean), max(Com_nombre$co2mean), length.out = 10)
+
+## Graficas conjuntas
+
+```{r Graficas juntas}
+
+grafica_final <- ((co2_anyos) / (relacion_co2_hab + relacion_co2_empresas))+
+  plot_annotation(
+    title = expression(paste("Emisiones de "~CO[2], " en España")),
+    caption = "   Fuente:
+    Gráficas: Alba Colado Suárez",
+    theme = theme(
+      plot.title = element_text(size = 24, face = "bold"),
+      plot.caption = element_text(hjust = 0, size = 14, color = "grey50", margin = margin(t = 25))
+      )
+    )
+
+grafica_final
+
+ggsave(
+  plot = grafica_final,
+  here("04-Figuras", "grafica_final.png"),
+  width = 12, height = 8
+)
+
+```
+# 6. Conclusiones
+
+Siguiendo las hipotesis presentadas al inicio del trabajo, podemos concluir que estabamos acertados en nuestro pensamiento: la actividad humana influye en el calentamiento global.
+Las empresas y una mayor poblacion son dos causas que afectan directamente a un incremento en los niveles de CO~2~, estos dos motivos no son los unicos que podriamos encontrar, mismamente el transporte o la deforestacion tambien contribuyen.
+Ha sido sorprendente analizar los valores de CO~2~ por Comunidad, ya que cabria esperar que Madrid, Catalunya y Andalucia fueran las mas contaminantes. En cambio, Castilla y Leon es una comunidad bastante afectada cuando su poblacion y sus empresas no se encuentran entre las de mayor numero. Madrid se encontraria en septimo lugar en cuanto a numero de emisiones pese a ser una de las mas pobladas y que registra un mayor numero de empresas.
+Con estas afirmaciones hay que ser responsables de nuestro impacto en la contaminacion e intentar hacer lo que este en nuestra mano para que las cosas sigan mejorando.
+Estas afirmaciones son aun mas evidentes cuando en 2020 hubo que parar una gran parte de sectores y las personas (la gran mayoria) no se desplazaban de su domicilio, optando por el teletrabajo como medida de prevalencia (por lo que las personas que cogian un transporte privado era un numero muy reducido), con todo esto, las emisiones fueron menores que en el resto de anyos.
+Para el futuro se espera que no sea necesaria otra pandemia para poder bajar los niveles de CO~2~ y las medidas impuestas por los gobiernos sean realmente efectivas, sin tener que esperar a ver resultados en una gran cantidad de anyos.
+

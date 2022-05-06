@@ -1,0 +1,231 @@
+---
+title: ": ¿Como afectan los diferentes sectores economicos en la emision de gases del efecto invernadero en Madrid?"
+author: "Alvaro"
+date: "11/3/2022"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+library("units")
+library("ggthemes")
+library("ggplot2")
+library("viridis")
+library("RColorBrewer")
+```
+
+##Problema a investigar Se plantea la pregunta de como afectan los sectores economicos en la emision de gases del efecto invernadero en madrid, por lo tanto, hay que analizar si aumenta o disminuye la emision de gases en funcion de los sectores economicos en madrid.
+
+## Objetivos
+
+-   Analizar cual es el sector que mas gases de efecto invernadero emite.
+-   Analizar como varian las cantidades de gases en funcion de los sectores a lo largo del tiempo.
+-   Analizar las diferentes cantidades totales de los diferentes gases.
+-   Analizar como ha cambiado las cantidades totales en funcion de los gases a lo largo del tiempo.
+-   Analizar como varian las emisiones en funcion de los diferentes grupos.
+-   Analizar las cantidades totales de emision en funcion de los grupos.
+
+## Datos: sectores economicos y sus emisiones anuales
+
+-   Grupo al que pertenece el contaminante: Acifdificadores, precursores de ozono y gases de efecto invernadero, Metales pesados, Particulas, Contaminantes organicos persistentes.
+
+-   Sector economico desde el que es emitido el contaminante: Combustión en la produccion y transformacion de la energia, Plantas de combustion no industrial, Plantas de combustion industrial, Procesos industriales sin combustion, Extraccion y distribucion de combustibles, fosiles y energia geotermica, Uso de disolventes y otros productos,Transporte por carretera, Otros modos de transporte y maquinaria movil, Tratamiento y eliminacion de residuos, Agricultura y Otras fuentes y sumideros.
+
+-   Gases: Contaminante emitido a la atmósfera: óxidos de azufre (SOx), óxidos de nitrógeno (NOx), compuestos orgánicos volátiles no metánicos (COVNM), metano (CH4), monóxido de carbono (CO), dióxido de carbono (CO2), óxido nitroso (N2O), amoniaco (NH3), hexafluoruro de azufre (SF6), hexafluorocarbonados (HFC), perfluorocarbonados (PFC), metales pesados (As, Cd, Cr, Cu, Hg, Ni, Pb, Se, Zn), partículas de diámetro inferior a 2,5 micras, 10 micras y totales (PM2,5, PM10, PST), contaminantes orgánicos persistentes (HCH, PCP, HCB, TCM, TRI, PER, TCB, TCE, DIOX, HAP).
+
+-   Cantidad emitida de contaminante. Las emisiones de todos los contaminantes son analizadas según la clasificación SNAP (Selected Nomenclature for Air Pollution o Nomenclatura de Actividades Potencialmente Contaminantes de la Atmósfera). La evolución global de las emisiones de gases de efecto invernadero es objeto de un análisis complementario al del resto de contaminantes generales basado en la clasificación CRF (Common Reporting Format o Formulario Común para Informes), al haber aspectos que no se pueden abordar adecuadamente desde la perspectiva de la clasificación SNAP.
+
+-   Años: de 1990 a 2017.
+
+-   Zona: Madrid.
+
+Fuente de los datos: <https://datos.comunidad.madrid/catalogo/dataset/atmosfera_inventario_emisiones/resource/331726ed-341d-47c5-82a2-86fc5a755732>
+
+##Metodología.
+
+-   Plantear un problema y establecer unos objetivos a analizar.
+-   Búsqueda de datos para su posterior análisis y limpieza para poder eleborar los resultados deseados.
+-   Obtención de resultados gráficos para el estudio del problema, los utilizados son el gráfico de lineas y el gráfico de barras que seran posteriormente analizados.
+-   Finalmente la elaboración de una conclusión.
+
+```{r include = TRUE, eval = TRUE}
+datos <- read.csv("emisiones_madrid_Cdatos.csv", sep = ";")
+View(datos)
+
+grupos <- datos[, "atm_inventario_grupo_cont"]
+anos <- datos[, "atm_inventario_año"] 
+sectores <- datos[, "atm_inventario_sector"]
+gas_emision <- datos[, "atm_inventario_cont_desc"]
+unidad <- datos[, "atm_inventario_cont_unidades"]
+cantidad_de_emision <- datos[, "atm_inventario_cont_cantidad"]
+
+
+#cambio de unidades
+
+for(i in 1:nrow(datos)){
+  ifelse(datos[i,"atm_inventario_cont_unidades"] == "g",
+         datos[i,"atm_inventario_cont_cantidad"]<- datos[i,"atm_inventario_cont_cantidad"]/1000,
+         NA)
+  ifelse(datos[i,"atm_inventario_cont_unidades"] == "t",
+         datos[i,"atm_inventario_cont_cantidad"]<- datos[i,"atm_inventario_cont_cantidad"]*1000,
+         NA)
+}
+```
+
+##Gráfico de lineas por sectores
+
+```{r eval = TRUE, include = TRUE}
+
+#emision total por sectores en funcion del año(sin contar tipo de gas)
+
+df_años_sectores_gas_cantidad <- datos[, c(1, 3, 4, 6)]
+
+
+emisionTot_porSectores <- aggregate(cantidad_de_emision ~ anos + sectores,
+                                    df_años_sectores_gas_cantidad,
+                                    sum)
+#grafico de lineas
+
+
+gl_emisionTot_porSectores <- ggplot(emisionTot_porSectores, aes(x = anos, y = cantidad_de_emision, color = sectores)) +
+  geom_line(size = 1.5)+
+  geom_point(size = 5)+
+  scale_y_continuous(breaks=seq(0, 900000000, 50000000))+
+  scale_x_continuous(breaks = c(1990:2017))+
+  labs(subtitle="Emision de gases efecto invernadero en funcion de los sectores", 
+       y = "Cantidad de emision (kg)", 
+       x = "Años", 
+       caption = "Fuente: midwest")+
+  scale_color_viridis(discrete = TRUE, option = "D")+
+  scale_fill_viridis(discrete = TRUE)+
+  theme_economist()
+
+gl_emisionTot_porSectores
+```
+
+##Estudio de la gráfica ¿Como han variado las cantidades emitidas por los sectores a lo largo de los años?
+
+En el gráfico anterior se aprecia como el transporte por carretera es el principal emisor de estos gases aunque con el paso de los años ha ido disminuyendo bastante, el uso de disolventes y el tratamiento y eliminacion de residuos han seguido el mismo patron durante el paso de los años disminuyendo y aumentando de forma constante, la combustión en la producción y transformación de energía y otras fuentes y sumideros han emitido aproximadamente la misma cantidad de gases con variaciones en los años 2003, y 2009. Los restantes han emitido una cantidad aproximadamente constante, pero unos sectores han emitido mas que otros en el siguiente orden: Agricultura, otros modos de transporte y maquinaria móvil, extracción y distribución de combustibles fósiles y energía geotérmica y la que menos ha emitido la combustión no industrial.
+
+##Gráfico de lineas por gases
+
+```{r eval = TRUE, include = TRUE}
+emisionTot_porCompuesto <- aggregate(cantidad_de_emision ~ anos + gas_emision,
+                                    df_años_sectores_gas_cantidad,
+                                    sum)
+
+gl_emisionTot_porCompuesto <- ggplot(emisionTot_porCompuesto, aes(x = anos, y = cantidad_de_emision, color = gas_emision)) +
+  geom_line(size = 1.5)+
+  geom_point(size = 5)+
+  scale_y_continuous(breaks=seq(0, 900000000, 50000000))+
+  scale_x_continuous(breaks = c(1990:2017))+
+  labs(subtitle="Emision de gases efecto invernadero en funcion de los compuestos", 
+       y = "Cantidad de emision (kg)", 
+       x = "Años", 
+       caption = "Fuente: midwest")+
+  scale_color_viridis(discrete = TRUE, option = "H")+
+  scale_fill_viridis(discrete = TRUE)+
+  theme_economist()
+
+gl_emisionTot_porCompuesto
+```
+
+##Estudio de la gráfica ¿Como han variado las cantidades emitidas por los diferentes gases a lo largo de los años?
+
+En el gráfico anterior se aprecia la cantidad emitida de los diferentes compuestos con el paso de los años el que mas ha sido emitido es el CO aunque con el paso de los años la emisión ha sido superada por metano(2012) y el cromo(2008), los óxidos de nitrogeno han sido los cuartos que mas han sido emitidos con variaciones como en el 2003 que fue mas emitido debido a una disminución del metano hasta el 2008 que volvio ha sobrepasarlo con un aumento. Loz demás como se aprecia en el gráfico han sido emitidos en una cantidad con apenas variaciones con el paso de los años.
+
+```{r eval = TRUE, include = TRUE}
+emisionTot_porGrupo <- aggregate(cantidad_de_emision ~ anos + grupos,
+                                 df_años_sectores_gas_cantidad,
+                                 sum)
+
+gl_emisionTot_porGrupo <- ggplot(emisionTot_porGrupo, aes(x = anos, y = cantidad_de_emision, color = grupos)) +
+  geom_line(size = 1.5)+
+  geom_point(size = 5)+
+  scale_y_continuous(breaks=seq(0, 900000000, 50000000))+
+  scale_x_continuous(breaks = c(1990:2017))+
+  labs(subtitle="Emision de gases efecto invernadero por grupos", 
+       y = "Cantidad de emision (kg)", 
+       x = "Años", 
+       caption = "Fuente: midwest")+
+  scale_fill_brewer(palette = "Set2")
+
+
+gl_emisionTot_porGrupo
+```
+
+##Análisis del gráfico anterior En el gráfico se ve como los acificadores con diferencia son los principales emisores aunque con el paso del tiempo han ido descendiendo. Las particulas tienen una emision muy reducida comparada con los acificadores y no varia apenas. Los metales pesados y contaminantes orgánicos persistentes tienen una contaminación nula.
+
+##Cantidad total de emisiones por sectores
+
+```{r eval = TRUE, include = TRUE}
+emisionTot_porCantidad <- aggregate(cantidad_de_emision ~ sectores,
+                                     df_años_sectores_gas_cantidad,
+                                     sum)
+
+graficos_emisionTot_porCantidad <- ggplot(emisionTot_porCantidad, aes(x = sectores, y = cantidad_de_emision, fill = sectores))+
+  geom_col()+
+  labs(subtitle="Emision de gases total por sector", 
+       y = "Cantidad de emision (kg)", 
+       x = "", 
+       caption = "Fuente: midwest")+
+  scale_fill_brewer(palette = "Set3")+
+  theme_classic()+
+  theme(axis.text.x = element_text(color = "white")) 
+  
+graficos_emisionTot_porCantidad
+```
+
+##Análisis del gráfico anterior
+
+En el gráfico se aprecia como el principal emisor es el sector de transporte de carretera, seguido del uso de disolventes y otros productos, y el tratamiento y eliminación de residuos que han emitido aproximadamente lo mismo. Y las plantas de combustión no industrial y otras fuentes y sumideros con una cantidad de emision total notable pero por debajo de las anteriores. El resto de sectores han emitido una cantidad bastante baja excepto la de combustión en la producción y transformación de la energía que ha emitido una cantidad total casi nula.
+
+#Cantidad total de emisiones por gas
+
+```{r eval = TRUE, include = TRUE}
+emisionTot_porCantidad_gases <- aggregate(cantidad_de_emision ~ gas_emision,
+                                    df_años_sectores_gas_cantidad,
+                                    sum)
+
+graficos_emisionTot_porCantidad_gases <- ggplot(emisionTot_porCantidad_gases , aes(x = gas_emision, y = cantidad_de_emision, fill = gas_emision))+
+  geom_col()+
+  labs(subtitle="Emision de gases total por gas", 
+       y = "Cantidad de emision (kg)", 
+       x = "", 
+       caption = "Fuente: midwest")+
+  scale_colour_viridis_c()+
+  theme_calc()+
+  theme(axis.text.x = element_text(color = "white")) 
+
+graficos_emisionTot_porCantidad_gases
+```
+
+##Análisis del gráfico anterior
+
+En el gráfico se ve como el CO y el COVNM son los principales emisores ya que juntos han emitido más que la suma de los restantes. Estos van seguidos del CH4 y NOx con una cantidad de emision notable y el resto de los compuestos han emitido una cantidad apenas notable comparada con la de los anteriores.
+
+```{r eval = TRUE, include = TRUE}
+emisionTot_porGrupo <- aggregate(cantidad_de_emision ~ anos + grupos,
+                                 df_años_sectores_gas_cantidad,
+                                 sum)
+
+graficos_emisionTot_porGrupos <- ggplot(emisionTot_porGrupo , aes(x = grupos, y = cantidad_de_emision, fill = grupos))+
+  geom_col()+
+  labs(subtitle="Emision de gases total por grupo", 
+       y = "Cantidad de emision (kg)", 
+       x = "", 
+       caption = "Fuente: midwest")+
+  scale_color_viridis(discrete = TRUE, option = "E")+
+  scale_fill_viridis(discrete = TRUE)+
+  theme_calc()+
+  theme(axis.text.x = element_text(color = "white")) 
+
+graficos_emisionTot_porGrupos
+```
+
+##Análisis del gráfico anterior
+
+El estudio de este gráfico es muy simple ya que los acificadores, precursores de ozono y gases de efecto invernadero son los mayores emisores con una gran diferencia sobre los tres restantes que son las partículas con una cantidad notable pero muy baja y los demas con cantidades básicamente nulas.
+
+##Conclusión
+
+Para concluir segun lo visto este estudio podria ayudar a la reducción de gases de efecto invernadero ya que se ha analizado la evolución y las cantidades totales de la emisión en diferentes divisiones como son los sectores cuyo mayor emisor es el transporte por carretera, los diferentes gases emitidos donde el CO era el protagonista y finalmente los grupos donde destacaba el grupo de acidificadores.

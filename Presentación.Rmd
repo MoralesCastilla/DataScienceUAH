@@ -1,0 +1,406 @@
+---
+title: |
+  ![](C:/Users/tsuba/OneDrive/Escritorio/aves1.png)
+output: 
+  html_document:
+    theme: 
+      bg: "#FFFFFF"
+      fg: "#283F3B"
+      primary: "#556F44"
+      secondary: "#95BF74"
+      base_font:
+        google: Gowun Dodum
+      code_font:
+        google: Roboto Mono
+      code_bg: "#B6D29D"
+      pre_border: "#B6D29D"
+      pre_bg: "#B6D29D"
+      heading_font:
+        google: Patrick Hand
+      headings_color: "#556F44"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introducción {.tabset .tabset-pills}
+
+A lo largo de este documento os presentaré todo el proceso que he seguido en el desarrollo de las prácticas.
+
+## Planteamiento de mi problema ambiental
+
+### ¿Cómo decidí el tema?
+
+Busqué en diversos repositorios europeos y españoles, principalmente me centre en estos dos al inicio:
+
+-   Ministerio de transición ecológica y reto demográfico: <https://www.miteco.gob.es/es/biodiversidad/temas/default.aspx>
+
+-   Unión europea: <https://ec.europa.eu/eurostat/web/environment/overview>
+
+A partir de la información que fui viendo se me fueron ocurriendo diversas ideas, muchas de ellas eran demasiado complejas como para llevarlas a cabo y acabé quedándome con 3 posibles preguntas, aunque finalmente no acabé utilizando ninguna de ellas:
+
+-   Efecto de los pesticidas sobre la productividad agrícola: donde mi interés se centraría en relacionar si la cantidad de pesticidas utilizados sobre los cultivos afectaba al rendimiento de los mismos, ya que aunque los pesticidas evitan las plagas también terminan dañando a los polinizadores y pensé que un exceso de pesticidas podría afectar negativamente a la productividad agrícola.
+
+    ![](images/arrow_bend_down_right_icon_174806-01.png){width="33"} **Inconveniente:** los datos que existían sobre el uso de pesticidas eran escasos y solo eran aportados por algunos países, además los datos eran sobre la cantidad anual de pesticidas que utilizaban. Tampoco existían datos como tal de la productividad agrícola.
+
+-   Ver la evolución de la industria forestal en los países europeos: en este caso había pensado en intentar analizar la importancia de las explotaciones forestales en Europa y ver las tendencias actuales.
+
+    ![](images/arrow_bend_down_right_icon_174806-01.png){width="33"} **Inconveniente:** para reflejar la importancia del sector forestal en cada país hubiese tenido que trabajar con los datos de los ingresos brutos que generaba este sector en cada país, los datos eran insuficientes y la pregunta no me llamaba tanto la atención.
+
+-   Relación entre la biodiversidad de aves en regiones agrícolas y relacionarlas con el uso de pesticidas a escala europea.
+
+    ![](images/arrow_bend_down_right_icon_174806-01.png){width="33"} **Inconveniente:** de nuevo los datos de pesticidas eran casi inexistentes, y era un proyecto demasiado grande.
+
+A partir de esta última pregunta fui desarrollando mi pregunta ambiental con mucha ayuda de los profesores para centrar todas las ideas que se me ocurrían.
+
+### Mi pregunta ambiental definitiva
+
+Finalmente me acabé centrando solo en España y en relacionar la biodiversidad de aves con los diferentes usos del suelo, donde acabé reduciendo los usos del suelo a solo dos tipos: usos antropizados (suelos urbanos, industrias, etc) y usos naturalizados (abandono de los campos de cultivo, aforestación, etc).
+
+Por lo tanto mi pregunta ambiental acabó siendo la siguiente: **¿Existe alguna relación entre la biodiverisdad de aves y los usos del suelo?**
+
+Mi hipótesis ante esta pregunta es sí existía una relación, y en concreto que la biodiversidad de aves sería mayor en zonas con usos del suelo naturalizados con respecto a zonas con usos antropizados.
+
+## Datos utilizados
+
+Como pretendía relacionar la biodiversidad de aves con los usos del suelo en España necesitaba datos de aves y de usos del suelo.
+
+### Aves
+
+Los datos de aves los obtuve a partir de la página web del ministerio en el siguiente enlace: <https://www.miteco.gob.es/es/biodiversidad/temas/inventarios-nacionales/inventario-especies-terrestres/inventario-nacional-de-biodiversidad/bdn-ieet-default.aspx>
+
+Estos consistían en un inventario de las especies de aves residentes en España y se mostraba su distribución en cuadrículas UTM.
+
+### Uso del suelo
+
+En un principio obtuve datos de usos del suelo del Corine Land Cover, que descargue a partir del siguiente enlace web: <https://datos.gob.es/es/catalogo/e00125901-spaignclc2018>
+
+Estos datos eran muy complejos y necesitaban muchísimo trabajo para lo que realmente quería hacer con ellos, por ello Nacho me facilitó datos de una investigación sobre como habían cambiando los usos del suelo en la penísula ibérica desde 1998 a 2012 que habían publicado los investigadores David Fernández Nogeira y Eduardo Corbelle Rico en 2018, podéis acceder a este artículo en el siguiente enlace: <https://www.mdpi.com/2073-445X/7/3/99/htm>
+
+A partir de las 8 categorías de los usos del suelo que presentaban en el artículo, generé una variable de antropización donde solo existían dos tipos de usos: un uso antropizado y un uso naturalizado.
+
+**Pero con los datos sobre los usos del suelo me surgió otro inconveniente y es que no se encontraban en el mismo formato espacial que los datos de distribución de aves.**
+
+Los datos de aves siguen una malla UTM, pero los datos de suelo están trabajados por municipios.**¿Cómo lo solucionamos?**
+
+La solución consistió en realizar una extracción espacial de los datos que me interesaban de los usos del suelo sobre una malla UTM de referencia que pudiese unir con los datos de sitribución de aves.
+
+La malla UTM la obtuve a partir del siguiente enlace web del ministerio: <https://www.miteco.gob.es/en/biodiversidad/servicios/banco-datos-naturaleza/informacion-disponible/bdn-cart-aux-descargas-ccaa.aspx>
+
+## Flujo de trabajo
+
+Todo mi trabajo a lo largo de este proyecto ha sido muy confuso y caótico, solo ahora que he conseguido completarlo soy capaz de establecer un esquema sobre mi flujo de trabajo, cosa que si hubiese hecho desde un principio me hubiese ahorrado muchos quebraderos de cabeza. Mi flujo de trabajo se resume en la siguiente imagen:
+
+![](flujo%20de%20trabajo.png)
+
+# Limpieza y preparación de las bases de datos:
+
+A lo largo de este proyecto hemos usado las librerías `tidyverse`, `sf`, `wesanderson` y `ggtheme`, por lo tanto las cargamos al principio:
+
+```{r}
+library(tidyverse)
+library(sf)
+library(wesanderson)
+library(ggthemes)
+```
+
+Siguiendo nuestro flujo de trabajo prepararemos primero los datos de aves y posteriormente prepararemos los datos de suelo.
+
+## Aves
+
+En la base de datos que descargamos no solo existían datos de las aves sino también había datos de distribución de reptiles, anfibios y mamíferos, ya que hemos utilizado el inventario de especies terrestres de la península ibérica. Como solo nos interesan las aves, después de cargar la base de datos, realizamos un `filter`para seleccionar este grupo, además cambio el nombre la variable `CUTM10x10` por `CUADRICULA` ya que hace referencia al identificador de la cuadricula UTM y con este nombre me resulta más sencillo trabajar, este cambio de nombre nos permitirá unir los datos de malla con aves más fácilmente:
+
+```{r}
+ibbet <- read.csv("1-datos/distribucion.csv") #cargo csv
+
+aves <- ibbet %>%
+  filter(Grupo == "Aves") # selecciono solo los que sean aves
+
+aves <- aves %>% 
+  rename(CUADRICULA = CUTM10x10) # Cambiamos el nombre
+
+```
+
+Si observamos `aves` veremos que existen una gran cantidad de variables que no nos interesan, por lo que eliminaremos las variables que no nos son necesarias:
+
+```{r}
+
+# Observamos aves:
+head(aves)
+
+# Eliminamos las variables que no nos interesan haciendo un subset:
+
+colselect <-  which(!colnames(aves) %in%
+                      c("Orden", "Familia", "Grupo",
+                        "FechaCUTM", "IdEspecie", "Autor",
+                        "Division", "Reino", "DescripcionOrigenCUTM",
+                        "Infra","OrigenCUTM", "Clase", "Genero", "Especie"))
+
+aves <- subset(aves, select=colselect )
+
+
+```
+
+En este momento tenía la idea de separar las especies contenidas en la variable `Nombre` para pasarlas a un formato horizontal, eliminando los valores repetidos de la variable `CUADRICULA`en el proceso, hecho que tras muchos intentos conseguí realizar pero que en realidad no tenía ninguna utilidad práctica para mi trabajo, me compliqué más de lo necesario.
+
+**Para mostraros todo el lío que me monté nos vamos al script...**
+
+Lo único que nos quedaría por hacer sería generar una variable para la **riqueza** y unirla a los datos que tenemos de aves. **¿Cómo?:**
+
+```{r}
+
+# Creamos un dataframe con el count de los valores de la variable CUADRICULA
+#¿Por qué?: porque cada valor de la cuadrícula UTM se repite por cada especie
+# diferente que hay en ella, así si contamos el número de veces que se repite
+# cada valor sacamos el número de especies por cuadrícula, es decir, la riqueza
+
+riq <- group_by(aves, CUADRICULA) %>% 
+  summarise(riqueza = n())
+
+# Con este dataframe trabajaremos más adelante
+
+```
+
+**Ya hemos terminado con los datos de aves, ahora pasamos a suelos...**
+
+## Usos del suelo
+
+Tras cargar los datos de usos del suelo, agrupe las 8 categorías de usos en una variable llamada antro (haciendo referencia a la antropización) que presenta 2 valores: 1 y 2. Donde 1 agrupa usos del suelo que tienden hacia la antropización y 2 agrupa usos que tienden hacia la naturalización.
+
+En concreto, dentro de antropización (1) se recogen las siguientes categorías de la investigación realizada por Fernández Nogueira y Corbelle Rico:
+
+-   LCT2: conversión del suelo para la explotación agrícola
+
+-   LCT5: deforestación
+
+-   LCT6: cambio de la composición forestal
+
+-   LCT7: intensificación de las explotaciones agrícolas
+
+-   LCT8: urbanización del territorio
+
+Mientras que dentro de naturalización (2), se recogen las siguientes categorías:
+
+-   LCT1: aforestación
+
+-   LCT3: abandono de cultivos
+
+-   LCT4: extinficación agrícola
+
+Para generar esta nueva variable utilizamos `ifelse`:
+
+```{r}
+suelos <- read_sf("1-datos/CLC_LAU2/CLC_LAU2/CLC_LAU2.shp")
+
+# Generamos la variable `antro`:
+
+suelos$antro <- ifelse(
+  suelos$LAU2_gru_2%in% 
+    c(2,5,6,7,8),
+  1, 2)
+
+```
+
+**Para llegar a esto di muchas vueltas por un error muy tonto, veamos el script...**
+
+### Extracción geográfica de suelos
+
+Como hemos aclarado en el esquema de flujo de trabajo existe un gran inconveniente respecto a los datos de suelo, y es que no se encuentran en el mismo formato geográfico que aves. Por ello vamos a extraer los datos que nos interesan de suelos sobre una malla UTM.
+
+```{r}
+# Cargamos la malla UTM:
+
+malla <- read_sf("1-datos/Malla10x10_Ter_p.shp")
+
+# Realizamos un `st_overlap` de malla con suelos, esta función nos genera
+# una lista donde se relacionan los valores de las cuadrículas UTM de malla
+# con los valores de usos del suelo por municipio de suelos:
+
+mallasuelos <-  st_overlaps(malla, suelos) 
+
+# Ahora asignaremos por medio de un loop los valores de la variable antro de suelos
+# a la malla:
+
+malla$antro <- NA # generamos la columna de la variable nueva, pero llena de NA
+                  # la completamos con el loop
+
+for(i in 1:nrow(malla)){ # definimos cuantas veces se repite
+  municipio = mallasuelos[[i]]
+  valorisuelos= as.numeric(suelos$antro[municipio])[1] # solo el primer valor
+  malla$antro [i] = valorisuelos
+}
+
+# hay algunas cuadrículas donde se repiten varios valores de los usos, lo 
+# correcto hubiese sido seleccionar aquel valor que tuviese una mayor área dentro de la cuadrícula, pero como lo valores repetidos eran muy pocos y el tiempo escaseaba
+# solo hemos seleccionado los primeros valores
+
+```
+
+## Unión de aves y suelos
+
+El último paso a completar que nos queda es unir las dos bases de datos, `riq` y `malla`, para ello usaremos la función `inner_join` de `tidyverse`:
+
+```{r}
+aves_suelo <- inner_join( malla, riq, by= "CUADRICULA" )
+
+#comprobamos si existen valores nulos, ya que la base de aves incluía las islas baleares pero suelos no:
+anyNA(aves_suelo)
+
+# como existen na y no me aportan ninguna información los elimino con el siguiente código:
+
+aves_suelo <- na.omit(aves_suelo)
+anyNA(aves_suelo)
+
+```
+
+Hemos terminado con la limpieza de los datos, ahora pasamos al análisis.
+
+# Análisis de la relación aves\~suelo
+
+Antes ver si existe alguna relación entre la riqueza de aves y los usos del suelo, vamos a explorar un poco más lo que tenemos.
+
+## Exploración gráfica de la riqueza de aves
+
+Vamos a visualizar los valores de la riqueza de aves en España a través de un mapa:
+
+```{r}
+
+#Hemos creado una paleta de verdes:
+
+pal <- c("#B7EFC5", "#92E6A7","#6EDE8A", "#4AD66D","#2DC653","#25A244", "#208B3A",
+         "#1A7431","#155D27","#10451D")
+
+# Generamos el mapa con ggplot y lo personalizamos un poco:
+
+ggplot(aves_suelo, aes(riqueza, fill= riqueza)) +
+  geom_sf()+
+  scale_fill_gradientn(colours= pal )+
+  theme_map()+
+  theme(legend.position = "bottom")
+```
+
+Como se puede observar en el mapa las regiones de mayor riqueza se concentran en el norte y centro de la península, parece a que asociados a los sistemas montañosos del sistema central, sistema ibérico y la cordillera Cantábrica. Aquí os muestro una imagen del relieve de la península para comparar.
+
+![](images/mapa1.jpg)
+
+
+## Exploración gráfica de los usos del suelo
+
+Por medio de un mapa vamos a visualizar las dos categorías del uso del suelo que hemos generado, donde 1 se corresponde con un uso antropizado y 2 con un uso naturalizado:
+
+```{r}
+pal1 <- c("#F0A868", "#6A8D73")
+
+ggplot(aves_suelo, aes(antro, fill= antro)) +
+  geom_sf()+
+  scale_fill_gradientn(colors = pal1)+
+  theme_map()+
+  theme(legend.position = "bottom")
+```
+
+
+El patrón menos claro pero parece que las regiones del sistema central, sistema ibérico y de la cordillera cantábrica, donde encontrábamos una mayor riqueza de especies, hay un predominancia de usos del suelo naturalizados. Aunque hay regiones como Galicia que ha pesar de tener una superficie considerable naturalizada no tienen una mayor riqueza, por lo que es posible que los usos del suelo influyan sobre la riqueza de aves pero existen otros factores que están influyendo en la riqueza y que no estamos teniendo en cuenta, por lo que la relación entre la riqueza y los usos del suelo parece ser más compleja de lo que esperábamos. 
+
+## Exploración gráfica de la relación
+
+Antes de realizar cualquier análisis estadístico debemos explorar nuestros datos, ahora vamos a comprobar la normalidad de los datos de riqueza por medio de un histograma:
+
+```{r}
+
+ggplot(aves_suelo, aes(riqueza))+
+  geom_histogram(fill= "#F0A868")+
+  labs(x = "Riqueza")+
+  theme_clean()
+
+```
+
+Como se puede observar los datos de riqueza parecen seguir una distribución normal.
+
+A continuación, realizamos un boxplot donde representaremos nuestros datos de riqueza en función de los valores de la variable antro de los usos del suelo:
+
+```{r}
+
+# Para poder generar este boxplot tenemos que transformar la variable antro
+# en una variable cualitativa, ya que durante el loop la habíamos definido como
+# numérica, para ello usamos `as.factor`:
+
+aves_suelo$antro <- as.factor(aves_suelo$antro)
+
+# A continuación realizamos el boxplot:
+
+ggplot(aves_suelo, aes(antro, riqueza))+
+  geom_boxplot(fill = c("#D88373", "#83AC5D"))+
+  labs(x="Antropización", y= "Riqueza")+
+  theme_clean()
+
+```
+
+El boxplot nos indica la riqueza de aves es ligeramente mayor en regiones naturalizadas con respecto a las antropizadas, pero esta diferencia parece ser bastante pequeña y por ello comprobaremos si esta diferencia es significativa en el siguiente apartado.
+
+
+## Comprobación de nuestra hipótesis
+
+Nuestra hipótesis es que existe una relación entre la riqueza de especies y los usos del suelo,  en concreto esperamos que la riqueza de aves sea mayor en regiones naturalizadas con respecto a las antropizadas. Esto se puede traducir como que la diferencia de las medias de riqueza de aves para cada valor del uso del suelo sean significativamente diferentes, y que además la media de la riqueza en el valor 2 de la variable antro sea mayor a la media en 1.
+
+
+Aunque hemos supuesto la normalidad de los datos en el apartado anterior, vamos a comprobarlo a través del test Shapiro-Wilk con la función `shapiro.test`:
+
+```{r}
+
+# como queremos comprobar la normalidad de riqueza en función de antro debemos realizar un split y usamos lapply para que se haga todo a la vez:
+
+lapply(split(aves_suelo$riqueza, aves_suelo$antro), shapiro.test)
+
+```
+
+Como el p-valor que obtenemos es inferior a 0,5 observamos que los datos no siguen una distribución normal. Como la distribución no es normal para comprobar nuestra hipótesis debemos realizar el test Wilcoxon o test de Mann-Whitney, donde comprobaremos las siguientes hipótesis utilizando la función `wilcox.test`:
+
+ - Hipótesis nula (H0): donde no existiría relación entre la riqueza y los usos del suelo ya que las medias serían iguales.
+ 
+ - Hipótesis alternativa (H1): donde sí existiría relación entre la riqueza y los usos del suelo ya que las medias de riqueza serían significativamente diferentes para los distintos valores de uso del suelo.
+ 
+
+Corroboración de H0:
+
+```{r}
+
+wilcox.test(aves_suelo$riqueza~aves_suelo$antro)
+
+```
+ 
+Se rechaza la hipótesis nula, por ende la hipótesis alternativa se corrobora como cierta y sí existe relación entre la riqueza y los usos del suelo, pero no sabemos si la riqueza es mayor en zonas antropizadas o naturaliazadas. Para comprobar este último hecho realizamos pruebas unilaterales con `wilcox.test`:
+ 
+```{r}
+
+# Comprobamos si la riqueza en 1 (antropizado) es menor que en 2 (naturalizado):
+
+wilcox.test(aves_suelo$riqueza~aves_suelo$antro, alternative= "less")
+
+# Comprobamos si la riqueza en 1 es mayor que en 2:
+
+wilcox.test(aves_suelo$riqueza~aves_suelo$antro, alternative= "greater")
+
+```
+
+Con los resultados del test vemos que no estábamos en lo cierto, al contrario de lo que pensábamos la riqueza de especies es significativamente mayor en usos del suelo antropizados con respecto a usos naturalizados. 
+
+# Discusión
+
+Por medio de nuestro análisis estadístico hemos comprobado que la riqueza de aves en la península ibérica es mayor en regiones antropizadas con respecto a regiones naturalizadas, lo cual en un principio puede parecernos contradictorio, ya que con la antropización se dan procesos de degradación y fragmentación de los hábitats.
+
+Estos resultados pueden deberse en parte a que la superficie del suelo antropizada es muy superior a la naturalizada.
+
+Otra posible respuesta a estos resultados puede residir en la naturaleza de las propias especies analizadas. Es posible que estos ambientes antropizados estén generando nuevos nichos que beneficien a especies generalistas que no se ven tan afectadas  por la fragmentación. 
+ 
+Con prospectiva a futuras investigaciones se necesitarían muestras de mayor tamaño donde la proporción de suelos naturalizados y antropizados fueran más similares, donde, además, sería interesante seleccionar muestras de especies generalistas y especies especialistas de aves. También sería interesante ver los efectos de los diferentes usos del suelo sobre la biodiversidad de otros grupos animales.
+
+
+
+
+
+
+
+
+
+

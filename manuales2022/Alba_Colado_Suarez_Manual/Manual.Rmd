@@ -1,0 +1,969 @@
+---
+title: "Manual"
+author: "Alba Colado Suarez"
+date: "1/4/2022"
+output: html_document
+---
+
+Los metadatos siempre van al principio y se ponen entre guiones "---"
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE)
+
+```
+
+**echo** = true: dice que enseñe el codigo y tambien el texto - para visualizarlo en el codigo final
+En cada chunk puedes especificar concretamente, por ejemplo si no quieres que lo evalue (no lo corre) **eval** = false
+**warning** y **message** = false : para que solo te los enseñe en la consola
+
+# Distintos tipos de tipografia
+
+**negrita**
+*cursiva*
+subíndice~1~
+superíndice^2^
+Títulos: # primer nivel, ## segundo nivel...
+Listas y sublistas (\*, -, +)
+<!--# esto es un comentario -->
+
+# Introduccion
+
+```{r Instalar paquetes y librerias}
+
+#install.packages("lattice")
+library (lattice)
+#demo (lattice)
+
+```
+
+# Programacion basica en R
+
+Con el simbolo *<-* asignamos un objetos
+Con la letra *c* concatenamos numeros
+
+```{r Asignar objetos y concatenar}
+
+1+1
+a = 1 + 1
+a
+a <- 1 + 1 
+b <- c(1,2) 
+sum(a,b)
+str(b)
+str(a)
+
+```
+
+Con las teclas rapidas *Control+Shift+R* abrimos un nuevo titulo de seccion
+
+# Usando paquetes y librerias
+
+```{r Instalamos el paquete y la libreria}
+
+#install.packages("tidyverse")
+library(tidyverse) 
+
+```
+ 
+En R hay que tener en cuenta que cada *observacion* es una **fila** y cada *columna* una **variable**
+
+```{r Ver los nombres de una funcion}
+
+names(iris)
+select(iris, Petal.Width)
+petal <- select(iris, Petal.Width)
+str(petal)
+
+```
+
+
+```{r Seleccionar todas las variables menos petal width}
+
+names(iris)
+#install.packages("raster")
+library(raster)
+new <- dplyr::select(iris, -Petal.Width)
+str(iris) 
+dim(new)
+dim(iris)
+
+```
+
+Como *Select* esta en los dos paquetes tengo que especificar que lo quiero con tidyverse (la funcion es de ese paquete determinado)
+```{r Otra forma de realizarlo}
+
+new <- iris[,-4] 
+
+```
+
+El signo menos con letra no funciona
+Es *mas reproducible* poner el **nombre de las variables**
+
+```{r Seleccionar las columnas 1, 2 y 3}
+
+new <- iris[, 1:3]
+
+```
+
+A la *izquierda*de la coma estan las **filas**, a la *derecha* las **columnas**
+Uso *Select* para seleccionar columnas
+Uso *Filter* para filtrar
+
+```{r Para ver 10 filas y 3 columnas}
+
+col_13 <- iris[1:10, 1:3]
+
+```
+
+```{r Solo un vector}
+
+mean(col_13$Sepal.Length) 
+mean(col_13)
+names(iris)
+col_13_names <- iris[, c("Sepal.Length","Sepal.Width", "Petal.Length")]
+str(col_13)
+dim(col_13)
+dim(col_13_names)
+library(tidyverse)
+iris %>%
+  dplyr::select(
+    Species,
+    Sepal.Width,
+    Petal.Length
+  ) %>%
+  filter(
+  Species == "virginica"
+  )
+str(iris)
+
+select_fun <- function(df, x){ 
+  df[, x]
+  }
+
+select_fun(df = iris, x = 1:3)
+
+```
+
+Un dataframe compuesto por distintas variables
+No puedo hacer la media de col_13 ya que es todo el dataframe (varios vectores a la vez)
+
+# Pidiendo ayuda y viendo ejemplos
+
+```{r Simbolo de la ?}
+
+?mean
+
+```
+
+```{r Saber que tipo de objeto es}
+
+class(iris)
+
+```
+
+En este caso: seria un dataframe
+
+Con esta funcion puedo ver lo que esta en el paquete base
+
+# Directorio de trabajo
+
+```{r Ver donde esta guardado}
+
+getwd()
+
+```
+
+```{r Cambiar de directorio de trabajo}
+
+#setwd("")
+
+```
+
+Para crear un *nuevo proyecto*: file - new project
+Asi Se crea una *nueva carpeta de trabajo*, voy metiendo todo dentro y me salen todos los archivos juntos dentro
+
+```{r Citar}
+
+citation()
+
+```
+
+```{r Las tres propiedades de un vector}
+
+altura <- c(1.65, 1.70, 1.45, 1.56, 1.75)
+
+typeof(altura) 
+length(altura) 
+attributes(altura)
+
+str(altura) 
+
+```
+
+cuando trabajamos con vectores hay que tener en cuenta la longitud
+Podemos ver (respectivamente): el tipo, la longitud y comentar que el atributo es la altura 
+La ventaja de emplear *str* es que nos da el **numero y el tamano**
+
+```{r Distribucion normal de media 1.70 y desviacion estandar 0.15}
+
+?dnorm
+
+altm <- rnorm(5, mean = 1.74, sd = 0.15)
+
+altm <- rnorm(5, 1.74, 0.15)
+
+summary(altura)
+summary(altm)
+
+```
+
+Calculamos la altura media
+A rnorm (una funcion) le introducimos la media y la desviacion
+Al introducir datos nuevos, usamos *summary*, proporciona **informacion muy detallada**
+
+```{r Distintos tipos de graficos}
+
+
+plot(altura) 
+boxplot(altura) 
+hist(altura) 
+
+```
+
+En el primer caso, tenemos un grafico que simplemente me dice las alturas
+El segundo es de cajas y bigotes
+El tercero es un histograma
+
+```{r Abrir el grafico en una ventana nueva}
+
+x11()
+
+```
+
+```{r Seleccionar las caracteristicas de los graficos y cerrar}
+
+tiff("Figura_altura-m.tif",
+     height = 250, width = 100, units = "mm",
+     res = 300) 
+par(mfrow = c(3, 2))
+plot(altura)
+plot(altm)
+boxplot(altura)
+boxplot(altm)
+hist(altura)
+hist(altm)
+dev.off()
+
+```
+
+Tiff es una extension de archivo (como pdf), figuras tipo pixel
+
+# Vectores de distinto tipo
+
+```{r Ver el tipo de vector que tenemos}
+
+?rep
+altura <- c(1.65, 1.70, 1.45, 1.56, 1.75)
+genero <- rep(c("mujer", "hombre"), c(3,2))
+
+typeof(genero)
+str(genero)
+summary(genero)
+
+```
+
+```{r Hacer que sea un factor}
+
+genero <- as.factor(genero)
+typeof(genero)
+str(genero)
+summary(genero)
+
+```
+
+```{r Llamo seqalt a la secuencia de altura y los dibujo}
+
+?seq
+
+seqalt <- seq(from = min(altura), to = max (altura),
+    length = 1000)
+
+boxplot(seqalt)
+
+```
+
+```{r Romper seqalt en una matriz de 4 columnas}
+
+seqalt4 <- matrix(data = seqalt, ncol = 4,
+       byrow = FALSE)
+dim(seqalt4)
+View(seqalt4)
+
+```
+
+```{r Romper la matriz en 4 partes iguales}
+
+length(seqalt)/4
+str(seqalt4)
+
+```
+
+```{r Hacer que un vector tipo factor se rompa en tres}
+
+quantile(seqalt)
+quantile(seqalt, 0.25)
+quantile(seqalt, 0.75)
+
+?break
+?cut
+
+c(min(seqalt),
+  quantile(seqalt, 0.25), quantile(seqalt, 0.75),
+  max(seqalt))
+
+c(quantile(seqalt),
+  seq(0.1, by = 0.5))
+
+kk <- cut(seqalt, breaks = c(min(seqalt),
+                             quantile(seqalt, 0.25), 
+                             quantile(seqalt, 0.75),
+                             max(seqalt)),
+          labels= c("min", "med", "max"))
+          
+kk
+levels(kk)
+data <- data.frame(seqalt,
+                   kk)
+
+View(data)
+
+boxplot(data$seqalt ~ data$kk) 
+summary(data)
+
+```
+
+Eje y ~ Eje x
+
+# Recomendaciones basicas de trabajo
+
+1) Entrar en "global options" y que no tengamos marcado "restaurar Rdata en un espacio de trabajo"
+
+2) Generar un proyecto organizado
+- Hacer carpetas para los distintos tipos de archivos
+  Ejemplo: "1-datos": con subcarpetas para tipos de datos
+    "2-scripts" o "3-output" (o figuras)
+
+- Nombres de los archivos
+Tienen que tener un significado sobre el contenido
+
+¿Que nombre es mas correcto para un scripts que me ajusta modelos?
+  ajuste-modelos.R o a-mod.R
+  Es mas correcto el primero ya que es mas informativo y facil de recordar
+
+- Si tenemos scripts que deben ejecutarse secuencialmente hay que numerarlos
+  Ejemplo: 0-descarga.R, 1-exploracion.R, 2-AnalisisDiversidad.R
+
+3) El codigo tenga una buena sintaxis y sea facil de leer
+
+- Comenta el codigo para que alguien mas pueda comprenderlo o incluso uno mismo si transcurre un tiempo
+
+- Usar nombres memorables y correctos para las variables
+  Nombres claros, usar siempre minusculas con palabras separadas por guiones bajos (_)
+  
+¿Cual es correcta?
+  mi_vector o MiVector o Vector.1 : mas correcta la primera
+
+¿Para que usar nombre y para cual verbo?
+  Nombres para variables y verbos para funciones
+  Evitar usar nombres comunes a otras funciones y variables
+
+- Espaciado
+Poner espacio despues de la coma
+
+```{r Espacio despues de la coma}
+
+x <- data.frame(var1 = rep(1, times = 100),
+                var2 = seq(from = 1, to = 100),
+                var3 = rnorm(100, mean = 3, sd = 0.5))
+
+summary(as.factor(x$uso))
+
+x[, 1]
+
+```
+
+```{r Sin espacio antes/despues del parentesis}
+
+mean(x, na.rm = TRUE)
+
+```
+
+Antes y despues del *=* y la flecha de asignacion *<-*  hay que dejar espacio
+
+4) Estructurar el codigo y pensar las secciones que tiene
+
+Llamar a las librerias antes de cargar los datos
+Cargar los datos
+Analizar los datos
+Obtener y guardar resultados
+
+# Instalar varias librerias
+
+```{r Instalar varias librerias}
+
+install.packages(c("dplyr","ggplot2"), dep = T)
+
+```
+
+# Citar
+
+```{r Citar un paquete}
+
+citation("dplyr")
+
+```
+
+Cita: Wickham et al, 2022
+Referencia: Wickham et al.. 2021. dplyr:A Grammar of Data Manipulation. R package version 1.0.8
+
+# Importar y salvar datos
+
+```{r Importar y salvar datos}
+
+datos <- data.frame(id = seq(from = 1, to = 100), 
+                uso = rep(c("A","B"), times = 50),
+                riqueza = rnorm(100, mean = 3, sd = 0.5))
+
+```
+
+Con id senalo el identificador
+
+```{r Guardar un archivo en la carpeta de 1-datos y compruebo que se ha leido correctamente}
+
+#write.csv(x, "1-datos/diversidad_uso.csv") 
+
+#datos <- read.csv("1-datos/diversidad_uso.csv")
+
+#str(datos)
+#summary(datos)
+
+```
+
+```{r Quitar la primera columna autonumerica}
+
+kk <- datos[, -1]
+
+```
+
+# Hacer un analisis y guardamos una tabla y una figura
+
+```{r Hacemos la media y la desviacion estandar (sd) de la riqueza pra cada nivel de uso del suelo}
+
+names(datos)
+
+mean(datos$riqueza)
+
+summary(as.factor(datos$uso)) 
+
+maves <- tapply(datos$riqueza, datos$uso, FUN = mean)
+sdaves <- tapply(datos$riqueza, datos$uso, FUN = sd)
+
+resumen_aves <- data.frame(maves, sdaves)  
+
+#write.csv(resumen_aves,"3-resultados/resumen_aves.csv")
+
+```
+
+Con *tapply()*: agrupa los datos de un vector de acuerdo a otra variable categorica y una funcion
+Si no pongo as.factor solo tengo un caracter
+Senalo que datos$uso es un factor y me lo cuenta, a partir de ahi ya puedo hacer la media y la sd
+Con data.frame hago una tabla
+
+```{r Hacer un grafico de cajas y bigotes de riqueza en funcion de A y B y guardarlo en la carpeta de resultados}
+
+tiff("3-resultados/riqueza_uso.tif", height = 250, width = 100, units = "mm", res = 300)
+boxplot(datos$riqueza ~ datos$uso)
+dev.off()
+
+```
+
+# R Markdown
+
+Es un lenguaje de marcado, tiene etiquetas o marcas que contienen informacion adicional sobre la estructura del texto o su presentacion
+Es un lenguaje y una herramienta de software el lenguaje en HTML valido
+Genera documentos dinamicos
+En el boton Knit (compilador) ves como queda en HTML
+
+# Gis
+
+Funcionan por capas 
+Las distintas capas no puede mezclarse (poligonales con puntos por ejemplo)
+La resolucion raster es el tamano del pixel
+Datos vectoriales o raster
+Los archivos shape file se componen de cinco archivos (se llaman de la misma forma pero tienen extensiones distintas)
+netCDF ocupan muchas capas
+Se basan en sistemas de coordenadas
+
+# Graficos
+
+Histograma: eje x y eje y, no permite ver si hay una relacion entre ellas, diagrama de barras, los datos centrales son los que mas se repiten (solo con una variable, y = frecuencia)
+Scotterplots: nube de puntos con smooth (linea de tendencia)
+Boxplots: grafico de dispersion, permite ver como varian los datos
+
+Paquete tidyverse: los datos se tienen en vertical
+Cada columna es una variable y cada fila una observacion
+
+Estructura:
+
+X <- ggplot(object, aes(var_x, var_y))+
+  geom_typeofplot(alpha = , 
+                  size = ,
+                  color = ,
+                  fill = )+
+  geom_smooth()+
+  theme_tipodetema()
+
+```{r Ejemplo de estructura}
+
+#kk <- ggplot(data, aes(var_date, var_number))+
+#  geom_point(color = "orangered", size = "5", alpha = 0,5)+
+#  theme_classic()
+
+
+```
+
+*aes* es una forma de decir que acceda al interior de mi base de datos
+Luego mencionamos el tipo de grafica que queramos: geom_point/bar/...
+alpha es la transferencia, es un valor que oscila entre 0 y 1
+
+# Problema Volcan
+
+```{r Instalo las librerias}
+
+#install.packages("tidyverse")
+#install.packages("lubridate")
+#install.packages("ggthemes")
+#install.packages("wesanderson")
+library(tidyverse)
+library(lubridate)
+library(ggthemes)
+library(wesanderson)
+
+```
+
+```{r Cargo los datos}
+
+count_cumbre_vieja <- read.csv("../cumbre_vieja_visualdata-main/count_cumbre_vieja.csv")
+data_cumbre_vieja <- read.csv("../cumbre_vieja_visualdata-main/data_cumbre_vieja.csv")
+count_cumbre_vieja$date <-  as.Date(count_cumbre_vieja$date)
+
+```
+
+Si no pongo *as.Date*, no me lo reconoce como si fuesen fechas
+
+```{r Hago las graficas}
+
+earthquakes_date <- ggplot(data = count_cumbre_vieja, aes(x = date, y = number))+
+  geom_point(color = "orangered", 
+             size = 5, 
+             alpha = 0.5
+             )+
+  geom_smooth(color = "coral", 
+              fill = "cyan", 
+              method = "lm" 
+                )+
+  labs(x = "fecha", 
+       y = "num de terremotos",
+       title = "2021")+
+  theme_classic()
+
+earthquakes_date
+
+earthquakes_date2 <- earthquakes_date+
+  geom_line(linetype = "dashed",
+            color = "cyan2")
+
+ggplot(count_cumbre_vieja, aes(x = date, y = number))+
+  geom_line(linetype = "dashed")+
+  geom_point()
+
+```
+
+Con *lm* señalo que es un modelo lineal
+con *labs* cambio los nombres de los ejes de la grafica
+Con *geom_line*, **linetype** cambio el tipo de lineas
+
+```{r Para 3 variables}
+
+earthquakes_date <- ggplot(data = count_cumbre_vieja, aes(x = date, y = number))+
+  geom_point(aes(color = Region),
+             size = 2,
+             alpha = 0.5)+
+  geom_smooth(aes(color = Region))
+
+earthquakes_date+
+  facet_wrap(.~ Region)
+
+```
+
+Con geom_smooth(aes(color = Region)) pongo una linea de tendencia diferente a cada region
+Con facet_wrap(.~ Region) divido la grafica en funcion de lo que quiera
+
+```{r Gam: modelo aditivo generalizado}
+
+ggplot(data = count_cumbre_vieja, aes(x = number, y = so2))+
+  geom_point(color = "turquoise4")+
+  geom_smooth(method = "lm",
+              fill = "orange2")+
+  theme_solarized()
+
+ggplot(data = data_cumbre_vieja, aes(x = date, y = Magnitude))+
+  geom_point(aes(size = Magnitude),
+             alpha = 0.25)+
+  geom_smooth()
+
+```
+
+Si anado un - antes de la variable me lo hace a la inversa (en vez de a mayor magnitud, a menor)
+Si queremos representar una tercera variable que no aparece en la grafica para visualizarlo tiene que ser numerica
+
+```{r Boxplots: 1 sola variable}
+
+ggplot(data = data_cumbre_vieja, aes(x = Region, y = Magnitude))+
+  geom_boxplot(aes(fill = Region))+
+  theme_gdocs()+theme(legend.position = "none")
+
+```
+
+Pongo fill en lugar de color porque es un area
+Con legend.position = "none" quito la leyenda si no da informacion necesaria
+Anadir las personalizaciones al final
+
+```{r Barplots}
+
+ggplot(data = count_cumbre_vieja, aes(x = Region, y = number))+
+  geom_bar(stat = "identity")
+
+```
+
+
+# Introduccion a Tidyverse
+
+Con *here()* nos dice la carpeta en la que estamos
+Con *read.csv("../01-data/co2.csv")* los ".." nos sirven para leer un archivo que se encuentra en otra carpeta
+En cambio, en tidyverse se haria asi: *read_csv(here("01-data", "co2.csv"))*
+
+Para ver las primeras columnas, usamos: *head(co2data)*
+La funcion *glimpse()* hace que se vea mas ordenado
+
+Caracteristicas de de "tidy data":
+  - Toda columna es una variable
+  - Toda fila es una observacion
+  - Cada celda es una medida unica
+  
+Tecla rapida para insertar la pipa *%>%* : CNTRL + SHIFT + M
+
+En el caso de: *temdata %>% select(!ID_coords)* con la **!** filtro todas menos una
+
+```{r Crear una variable nueva}
+
+#temp_sel %>% 
+#  mutate(Tmean = (Tmax + Tmin)/2,
+#        date = as.Date(date),
+#         month = format(date, format = "%m"),
+#         year = format(date, format = "%Y")
+#         ) 
+
+```
+
+Con *mutate* creo una variable nueva
+A veces, con esta funcion, tenemos que indicar el tipo que es:
+  - year = *as.numeric*(year)
+Ademas con *month* y *year* puedo separar por formato mes/anyo
+
+```{r Agrupar y hacer la media}
+
+#yearly_temp <- temp_mean %>% 
+#  group_by(year) %>% 
+#  summarise(
+#    Tmean.year = mean(Tmean)
+#  )
+
+```
+
+Con *group_by()* en el caso indicado, estamos agrupando por anyos
+A continuacion con *summarise()* y *mean* hacemos la media de la temperatura en el anyo
+
+```{r Unir}
+
+#full_join(
+#  yearly_temp, co2data_l_sp, by = c("year" = "co2_year")
+#)
+
+```
+
+con *full_join* estariamos uniendo dos tablas
+Otra pisibilidad es hacerlo con *merge()*
+
+# Forcats
+
+*Stringr*: vectores compuestos por caracteres
+  - Se filtra y extrae la informacion interesante
+*Forcats*: las variables pueden ser numericas y factores
+  - Con distintos niveles de tratamiento
+  
+# Purrr
+
+Para trabajar con funciones
+Repetir una tarea muchas veces de forma automatica
+
+# Creacion de graficos
+
+```{r Grafica conjunta}
+
+#grafica_final <- (gg_ye_co_th + gg_ye_co_sec_th) /
+#  (gg_ye_temp_th + gg_co_temp_th) +
+#  plot_annotation(
+#    title = expression(paste("Annual mean temperature and "~CO[2], " emissions relationship over the years in Alcalá de Henares, #Madrid (1950-2020)")),
+#    caption = "   Data source:
+#    Graphic: Students and teachers of **Ciencia de Datos Práctica: Resolución de Problemas Ambientales Mediante Proyectos #(Universidad de Alcalá)** course",
+#    theme = theme(
+#      plot.title = element_text(size = 24, face = "bold"),
+#      plot.caption = element_text(hjust = 0, size = 14, color = "grey50", margin = margin(t = 25))
+#      )
+#    )
+
+#ggsave(
+#  plot = grafica_final,
+#  here("03-figures", "alcala_co2_temp.png"),
+#  width = 20, height = 14
+#  )
+
+```
+
+Graficas que van en la parte superior / graficas de la parte inferior
+Se puede anadir un pie de foto con datos de las referencias, del autor... con *caption*
+Con *"~CO[2], "* podemos insertar subindices
+
+Con *ggsave* guardamos la grafica que acabamos de crear
+
+De un script muy largo podemos tener uno mas pequeño con: *source(here("02-functions", "f_read_data.R"))*
+
+# Referencias
+
+Se senalarian asi:
+
+::: {custom-style="align_right"}
+Ciencia de Datos Práctica: Resolución de Problemas Ambientales Mediante Proyectos (Universidad de Alcalá)
+:::
+
+# Compilar
+
+Se utiliza el botón de "*Knit*" (teclas rapidas: Ctrl + Shift + K)
+También se puede hacer mediante código: rmarkdown::render("intro_repro.Rmd", output_dir = "output")
+
+# Eliminar objetos de la memoria
+
+rm(list=ls())
+
+# Asignamos el directorio
+
+setwd()
+O con  el atajo: CNTRL + SHIFT + H
+
+# Mapa de los paises
+
+```{r Mapa de Espana recortado}
+
+#install.packages("maptools")
+#install.packages("rgdal")
+#install.packages("dismo")
+#install.packages("spam")
+#install.packages("jsonlite")
+#install.packages("rgeos")
+#install.packages("mapSpain")
+#install.packages("ggmap")
+#install.packages('maps')
+#install.packages('mapdata')
+#install.packages("marmap")
+#install.packages("mapproj")
+#install.packages("sf")
+
+library(raster)
+library(maptools)
+library(sp)
+library(sf)
+library(rgdal)
+library(dismo)
+library(spam)
+library(jsonlite)
+library(rworldmap)
+library(rworldxtra)
+library(rgeos)
+library(mapSpain)
+library(ggmap)
+library(ggplot2)
+library(maps)
+library(mapdata)
+library(marmap)
+library(mapproj)
+
+
+mapamundo <- getMap(resolution="high") 
+head(mapamundo)
+plot(mapamundo)
+
+mapaspain <- mapamundo["Spain",]
+
+mapaitaliafrancia <- mapamundo[c('Italy','France'),]
+plot(mapaitaliafrancia)
+
+mapaspain <- crop(mapaspain, extent(-10,5,35,45))
+
+plot(mapaspain, col="lightgrey", border="black")
+
+```
+
+Si pongo "c" antes de los paises puedo anadir mas de uno
+Uso **crop** para recortar el mapa con las coordenadas que yo quiera, en este caso para la peninsula y baleares
+
+Si usamos **mapDevice()** podemos ver los mapas en una ventana aparte
+
+```{r Mapa sin fondo}
+
+#map("world", fill=TRUE
+#    ,col="grey65"
+#    ,boundary=F,interior=F
+#    ,ylim=c(-60, 65), mar=c(0,0,0,0)
+#    ,projection='albers',par=c(0,0),wrap=T
+#    ,resolution=1,border="lightgrey",myborder=0)
+
+```
+
+```{r Mapa con fondo}
+
+map("world", fill=TRUE
+    ,col="grey65"
+    ,bg="deepskyblue4"
+    ,boundary=F,interior=F
+    ,ylim=c(30, 65),xlim=c(-5,25), mar=c(0,0,0,0)
+    ,projection='albers',par=c(0,0),wrap=T
+    ,resolution=0,border="white",myborder=0)
+
+```
+
+```{r Mapa con ggplot}
+
+mapWorld <- borders("world", colour="gray72", fill="gray65",
+                    ylim=c(-60,60),xlim=c(-180,180))
+mp <- ggplot() +   mapWorld
+mp + theme(panel.border = element_blank(),
+           panel.grid.major = element_blank(),
+           panel.grid.minor = element_blank())
+
+```
+
+```{r Dibujar batimetria}
+
+#BATHYMET<-getNOAA.bathy(lon1=45,lon2=-15,lat1=65,lat2=30, resolution=5)
+
+blues <- c("lightsteelblue4", "lightsteelblue3",
+           "lightsteelblue2", "lightsteelblue1")
+
+
+#plot(BATHYMET, image = TRUE, land = TRUE, lwd = 0.05,lty=0,
+#     ylim=c(30,65),xlim=c(-8,35),
+#     bpal = list(c(0, max(BATHYMET), "lightsteelblue1"),
+#                 c(min(BATHYMET),0,blues)),add=F)
+
+
+```
+
+```{r Anadir altitud}
+
+mapaspain
+
+#altSpain <- getData('alt', country='ESP', mask=T)
+
+
+#plot(altSpain)
+
+
+#alt2 = altSpain
+#res(alt2) = 0.02166666
+
+#alt3 <- resample(altSpain,alt2,method='bilinear')
+#plot(alt3)
+
+
+#slope <- terrain(alt3, opt='slope')
+#aspect <- terrain(alt3, opt='aspect')
+#hill <- hillShade(slope, aspect, 30, 250, normalize=T)
+#plot(hill, col=adjustcolor(grey(0:100/100),0.8), legend=FALSE, add=F)
+
+```
+
+```{r Datos del censo}
+
+census <- pobmun19
+#census <- mapSpain::pobmun19
+
+codelist <- esp_codelist
+#codelist <- mapSpain::esp_codelist
+str(codelist)
+
+census <- unique(merge(census, codelist[, c("cpro", "codauto")], all.x = TRUE))
+
+census_ccaa <-
+  aggregate(cbind(pob19, men, women) ~ codauto, data = census, sum)
+
+census_ccaa$porc_women <- census_ccaa$women / census_ccaa$pob19
+census_ccaa$porc_women_lab <-
+  paste0(round(100 * census_ccaa$porc_women, 2), "%")
+
+census_ccaa$porc_men <- census_ccaa$men / census_ccaa$pob19
+census_ccaa$porc_men_lab <-
+  paste0(round(100 * census_ccaa$porc_men, 2), "%")
+
+census_ccaa
+
+
+```
+
+Con *aggregate* agregamos los valores por comunidad autonoma
+Con **paste0** "%", calculamos los porcentajes
+
+```{r Poner la cajita de Canarias}
+
+Can <- esp_get_can_box()
+plot(Can)
+
+```
+
+Para añadir esta nueva "caja" que hemos dibujado al resto del mapa que ya tenemos, en plot tendriamos que escribir: "Can, add = T"
+
+```{r Extraer datos biologicos}
+
+#lynx <- gbif("Lynx", "pardinus")   
+#lynx
+
+#pres.lynx <- subset(lynx, select=c("country", "lat", "lon"))
+#head(pres.lynx)    
+
+#pres.lynx <- subset(pres.lynx, pres.lynx$lat<90) 
+
+#par(mar=c(0.5,0.5,0.5,0.5))
+#newmap <- getMap(resolution = "high")
+#plot(newmap, col="lightgrey", border="white", xlim=c(-7,3), ylim=c(34,45))
+#points(pres.lynx$lon, pres.lynx$lat,
+#       pch=19,cex=1,col=adjustcolor("cyan4",0.15))
+#text(0,45,substitute(italic("Lynx pardinus")),cex=2)
+
+```
+
+Hacemos un **subset** y lo convertimos en un data.frame
+En el caso de **points**, senalo la *x* a la *izquierda* y la *y* a la *derecha*
+  El simbolo $ senala columnas
+  
+

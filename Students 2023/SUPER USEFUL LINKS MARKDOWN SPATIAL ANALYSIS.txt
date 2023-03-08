@@ -1,0 +1,12 @@
+
+https://mgimond.github.io/Spatial/reading-and-writing-spatial-data-in-r.html
+
+https://zsmith27.github.io/rmarkdown_crash-course/introduction.html
+
+
+
+intersection of polygons
+https://tmieno2.github.io/R-as-GIS-for-Economists/spatial-intersection-transformative-join.html
+
+clean invalid geometries polygons sf package
+https://r-spatial.org/r/2017/03/19/invalid.html

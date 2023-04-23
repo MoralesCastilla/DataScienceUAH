@@ -1,0 +1,516 @@
+---
+title: "Proyecto Ciencia de Datos 2022-2023"
+author: "Daniel Solano"
+date: '19/03/2023'
+output: html_document
+---
+
+# Proyecto Ciencia de Datos 2022-2023: Competencia de roedores por área de distibución en Silwood Park
+
+## Introducción
+
+Un estudio de roedores en el bosque de Silwood Park, en el sur de Inglaterra, recogió datos sobre 3 especies: *Apodemus sylvaticus*, *Apodemus flavicollis* y *Myodes glareolus* (*Clethrionomys glareolus*). Se utilizaron cajas con data.loggers que registraron los datos de los pittag puestos anteriormente en los individuos; el estudio comprende un grid de x dimensiones.
+
+```{r Mapa}
+library(ggplot2)
+library(ggthemes)
+
+coords.SP <- data.frame(
+  lon = -0.641,
+  lat = 51.4086
+)
+
+ggplot () +
+  borders(regions = "UK") +
+  geom_point(data = coords.SP, aes(x = lon, y = lat)) +
+  coord_fixed(xlim=c(-8,3), ylim=c(50,55), ratio = 1.3) +
+  xlab("Longitud")+
+  ylab("Latitud")+
+  theme_few()
+```
+
+### Objetivos
+
+El objetivo de este proyecto es comprobar si existe exclusión entre especies en lo que se refiere a distribución espacial, y si dicha exclusión está presente a lo largo de todo un año. También se comprobará si, independientemente de la especie, hay exclusión espacial en función del sexo.
+
+## Descripción de los datos
+
+### Origen
+
+Los datos fueron proporcionados por Aurelio Malo Valenzuela en representación del Proyecto RodeVol del Imperial College of London.
+
+```{r Origen}
+datos1 <- read.csv(file="~/Temporada 2022-2023/Asignaturas/2o cuatrimestre/Ciencia de datos/script/data/dataAurelio.csv",
+         sep=";")
+```
+
+### Variables seleccionadas
+
+-   Coordenadas espaciales
+
+-   Especie
+
+-   Sexo
+
+-   Tiempo (día, mes y año)
+
+-   Visita
+
+```{r Variables seleccionadas}
+datos.clean <- subset(datos1, select=c("x.coord.1m", "y.coord.1m", "Species", "Sex", "day", "month", "year", "visit"))
+
+datos.clean.agg <-
+  aggregate(cbind(visit) ~ x.coord.1m +y.coord.1m+Species+Sex+year+month, data = datos.clean, sum)
+
+head(datos.clean.agg)
+```
+
+Para obtener las gráficas antes mencionadas, se necesita saber la distribución de cada especie en cada momento:
+
+## Tratamiento de datos
+
+### Paquetes
+
+```{r Paquetes, warning = FALSE, results = 'hide'}
+library(tidyverse)
+#library(mapview)
+library(raster)
+#library(maptools)
+library(sp)
+library(sf)
+#library(rgdal)
+#library(dismo)
+#library(spam)
+#library(rworldmap)
+#library(rworldxtra)
+#library(jsonlite)
+#library(rgeos)
+#library(mapSpain)
+#library(ggmap)
+library(ggplot2)
+#library(maps)
+#library(mapdata)
+#library(marmap)
+#library(mapproj)
+#library(slippymath)
+#library(ggspatial)
+#library(tidyterra)
+library(reshape2)
+#library(ggdist)
+#library(lubridate)
+library(ggthemes)
+#library(wesanderson)
+#library(easyclimate)
+library(gridExtra)
+```
+
+### Ejemplo de lo que se quiere obtener
+
+```{r Gráfica solapamiento}
+
+plot(datos1[,"x.coord.1m"],datos1[,"y.coord.1m"])
+```
+
+### Configuración del array!
+
+#### Especie y Sexo
+
+```{r subsets 1}
+
+#Creamos un data.frame que comprenda todos los posibles emparejamientos según especie y sexo
+subsets = expand.grid(Species1 = c("AS","AF","CG"),
+                      Sex1 = c("F", "M"),
+                      Species2 = c("AS","AF","CG"),
+                      Sex2 = c("F", "M")
+)
+
+subsets = subsets[-c(1,8,15,22,29,36),]
+subsets$Species1 = as.character(subsets$Species1)
+subsets$Species2 = as.character(subsets$Species2)
+subsets$Sex1 = as.character(subsets$Sex1)
+subsets$Sex2 = as.character(subsets$Sex2)
+
+#Añadimos un índice que represente cada posibilidad en una sola columna
+subsets$indice <- apply(subsets, 1, function(x) {
+  sort.i <- sort(x)
+  paste0(sort.i[1], sort.i[2], sort.i[3], sort.i[4])
+})
+
+#Vemos qué emparejamientos se repiten y los eliminamos
+indicequitar = which (duplicated(subsets$indice))
+
+subsets = subsets[-indicequitar,]
+
+head(subsets)
+```
+
+#### Año y mes
+
+```{r fecha}
+
+#Delimitamos de dónde hasta donde tiene que correr el futuro loop
+nyear = 10:13
+nmonth = 1:12
+nsubs = nrow(subsets)
+```
+
+```{r Arrays}
+
+#Establecemos los array donde introduciremos los datos calculados por el loop
+tabla.solapamientos = array(NA, dim = c(12,5,4,12))
+tabla.especies.area = array(NA, dim = c(12,2,4,12))
+```
+
+### Array!
+
+```{r Loop, results = 'hide', warning=FALSE}
+
+#Establecemos el loop
+
+for (i in nyear) {
+  
+  #Creamos un subset por cada año
+  datos.clean.agg.i = subset (datos.clean.agg, year == i)
+  year.i = which(nyear==i)
+  
+  
+  for (j in nmonth) {
+    
+    #Dentro de cada año creamos subsets para cada mes
+    datos.clean.agg.i.j = subset(datos.clean.agg.i, month == j)
+    
+    
+    
+    if(nrow(datos.clean.agg.i.j)>0){
+      for (k in 1:nsubs) {#Comenzamos un loop para calcular cada caso
+        
+        
+        #print(paste(i,j,k))#Para ver cómo se calcula cada caso de uno en uno
+        
+        #Primero eliminando casos que dan errores
+        if(paste(i,j,k) != "11 3 26" & 
+           paste(i,j,k) != "11 10 9" & 
+           paste(i,j,k) != "11 10 7"){  
+          
+          
+          #Creamos dos subsets, cada uno con uno de los integrantes de cada emparejamiento
+          datos.clean.agg.i.j.k.1 = subset(datos.clean.agg.i.j, Species == subsets[k,1] & Sex == subsets[k,2])
+          datos.clean.agg.i.j.k.2 = subset(datos.clean.agg.i.j, Species == subsets[k,3] & Sex == subsets[k,4])
+          
+          #Para confirmar que ambos subsets contienen datos
+          if(nrow(datos.clean.agg.i.j.k.1) > 0 & nrow(datos.clean.agg.i.j.k.2) > 0){
+            
+            #Se le pone un orden a las coordenadas
+            datos.clean.agg.i.j.k.1[order(datos.clean.agg.i.j.k.1[,"x.coord.1m"], 
+                                          datos.clean.agg.i.j.k.1[,"y.coord.1m"]),]
+            
+            #Para poder crear un objeto que contenga las coordenadas exteriores de cada integrante del emparejamiento
+            rango.k.1.ch <- chull(datos.clean.agg.i.j.k.1[,c("x.coord.1m", "y.coord.1m")])
+            rango.k.1.ch <- c(rango.k.1.ch, rango.k.1.ch[1])
+            
+        
+            datos.clean.agg.i.j.k.2[order(datos.clean.agg.i.j.k.2[,"x.coord.1m"],
+                                          datos.clean.agg.i.j.k.2[,"y.coord.1m"]),]
+            
+            rango.k.2.ch <- chull(datos.clean.agg.i.j.k.2[,c("x.coord.1m", "y.coord.1m")])
+            rango.k.2.ch <- c(rango.k.1.ch, rango.k.2.ch[1])
+            
+            #polygon(datos.clean.agg.i.j.k.1[rango.k.1.ch, c("x.coord.1m", "y.coord.1m")])
+            #polygon(datos.clean.agg.i.j.k.2[rango.k.2.ch, c("x.coord.1m", "y.coord.1m")])
+            
+            #Creamos un sf object
+            coords.k.1 <- as.data.frame(datos.clean.agg.i.j.k.1[rango.k.1.ch,c("x.coord.1m", "y.coord.1m")])
+            coords.k.1 <- subset(coords.k.1,!is.na(x.coord.1m))
+            p.k.1 = Polygon(coords.k.1)
+            ps.k.1 = Polygons(list(p.k.1),1)
+            sps.k.1 = SpatialPolygons(list(ps.k.1))
+            convex.k.1 <- st_as_sf(sps.k.1, coords = c("x.coord.1m", "y.coord.1m"), crs = 4326)
+            
+            coords.k.2 <- as.data.frame(datos.clean.agg.i.j.k.2[rango.k.2.ch,c("x.coord.1m", "y.coord.1m")])
+            coords.k.2 <- subset(coords.k.2,!is.na(x.coord.1m))
+            p.k.2 = Polygon(coords.k.2)
+            ps.k.2 = Polygons(list(p.k.2),1)
+            sps.k.2 = SpatialPolygons(list(ps.k.2))
+            convex.k.2 <- st_as_sf(sps.k.2, coords = c("x.coord.1m", "y.coord.1m"), crs = 4326)
+            
+            
+            if (st_is_valid(convex.k.1) == FALSE | st_is_valid(convex.k.2) == FALSE) {
+              
+              #En caso de que el objeto de error, lo volvemos válido
+              convex.k.1 = st_make_valid(convex.k.1)
+              convex.k.2 = st_make_valid(convex.k.2) 
+              
+            }
+            
+            #Creamos un objeto que represente el área de solapamiento entre los dos integrantes del emparejamiento
+            k.1k.2_intersect <- st_intersection (convex.k.1, convex.k.2)
+            
+            #Calculamos el valor de las áreas de cada integrante del emparejamiento
+            area.k1 = st_area(convex.k.1)
+            area.k2 = st_area(convex.k.2)
+            
+            #Incorporamos los datos a los array que hemos creado antes
+            if (length(k.1k.2_intersect$geometry) == 0) {#En caso de que no haya solapamiento
+              
+              tabla.solapamientos[j,1,year.i,k] = area.k1.k2 = 0
+              tabla.solapamientos[j,2,year.i,k] = area.k1.k2.total = (area.k1 - area.k1.k2) + (area.k1 - area.k1.k2) + area.k1.k2
+              tabla.solapamientos[j,3,year.i,k] = prop.solapamiento.k1.k2 = area.k1.k2/area.k1.k2.total*100
+              tabla.solapamientos[j,4,year.i,k] = prop.solapamiento.k = area.k1.k2/area.k1*100
+              tabla.solapamientos[j,5,year.i,k] = prop.solapamiento.k = area.k1.k2/area.k2*100
+              
+              tabla.especies.area[j,1,year.i,k] = area.k1
+              tabla.especies.area[j,2,year.i,k] = area.k2
+              
+            } else {#En caso de que sí haya solapamiento
+              
+              tabla.solapamientos[j,1,year.i,k] = area.k1.k2 = st_area(k.1k.2_intersect)
+              tabla.solapamientos[j,2,year.i,k] = area.k1.k2.total = (area.k1 - area.k1.k2) + (area.k1 - area.k1.k2) + area.k1.k2
+              tabla.solapamientos[j,3,year.i,k] = prop.solapamiento.k1.k2 = area.k1.k2/area.k1.k2.total*100
+              tabla.solapamientos[j,4,year.i,k] = prop.solapamiento.k = area.k1.k2/area.k1*100
+              tabla.solapamientos[j,5,year.i,k] = prop.solapamiento.k = area.k1.k2/area.k2*100
+              
+              tabla.especies.area[j,1,year.i,k] = area.k1
+              tabla.especies.area[j,2,year.i,k] = area.k2
+            }
+            
+          }
+        }
+      }}
+  }
+}
+```
+
+### Reestructuración del array
+
+```{r tabla.solapamientos1}
+
+#Lo convertimos en un data.frame
+tabla.solapamientos.final <- melt(tabla.solapamientos)
+
+head(tabla.solapamientos.final)
+```
+
+```{r tabla.solapamientos2}
+
+##Limpieza del array 'tabla.solapamientos'
+
+tabla.solapamientos.final = tabla.solapamientos.final[!is.na(tabla.solapamientos.final$value),]#Eliminamos los NA
+
+variables = c("months", "formula", "year", "species.int", "value")#Le damos nombre a las variables
+colnames(tabla.solapamientos.final) <- variables #Y se los añadimos al data.frame
+
+#Cambiamos el nombre de los valores en las variables 'formula', 'year' y 'species.int'
+tabla.solapamientos.final$formula = ifelse(tabla.solapamientos.final$formula == 1,  "intersect.area",
+                                    ifelse(tabla.solapamientos.final$formula == 2,  "total.area",
+                                    ifelse(tabla.solapamientos.final$formula == 3,  "%overlap",
+                                    ifelse(tabla.solapamientos.final$formula == 4,  "%overlap.esp1",
+                                    ifelse(tabla.solapamientos.final$formula == 5,  "%overlap.esp2", NA
+                                    )))))
+
+tabla.solapamientos.final$year = ifelse(tabla.solapamientos.final$year == 1,  "10",
+                                 ifelse(tabla.solapamientos.final$year == 2,  "11",
+                                 ifelse(tabla.solapamientos.final$year == 3,  "12",
+                                 ifelse(tabla.solapamientos.final$year == 4,  "13", NA
+                                 ))))
+
+tabla.solapamientos.final$species.int = ifelse(tabla.solapamientos.final$species.int == 1,  "AF.AS/F.F",
+                                        ifelse(tabla.solapamientos.final$species.int == 2,  "CG.AS/F.F",
+                                        ifelse(tabla.solapamientos.final$species.int == 3,  "AS.AS/M.F",
+                                        ifelse(tabla.solapamientos.final$species.int == 4,  "AF.AS/M.F",
+                                        ifelse(tabla.solapamientos.final$species.int == 5,  "CG.AS/M.F",
+                                        ifelse(tabla.solapamientos.final$species.int == 6,  "CG.AF/F.F",
+                                        ifelse(tabla.solapamientos.final$species.int == 7,  "AF.AF/M.F",
+                                        ifelse(tabla.solapamientos.final$species.int == 8,  "CG.AF/M.F",
+                                        ifelse(tabla.solapamientos.final$species.int == 9,  "CG.CG/M.F",
+                                        ifelse(tabla.solapamientos.final$species.int == 10, "AF.AS/M.M",
+                                        ifelse(tabla.solapamientos.final$species.int == 11, "CG.AS/M.M",
+                                        ifelse(tabla.solapamientos.final$species.int == 12, "CG.AF/M.M", NA
+                                        ))))))))))))
+
+#Separamos la variable 'species.int' en dos nuevas: 'species' y 'sex'
+tabla.solapamientos.final <- tabla.solapamientos.final |> 
+  separate(col = species.int, into = c("species", "sex"), sep = "\\/", remove = F)
+
+head(tabla.solapamientos.final)
+```
+
+```{r tabla.especies.area}
+
+##Limpieza del array 'tabla.especies.area'
+
+tabla.especies.final <- melt(tabla.especies.area)
+
+tabla.especies.final = tabla.especies.final[!is.na(tabla.especies.final$value),]
+
+colnames(tabla.especies.final) <- variables
+
+tabla.especies.final$formula = ifelse(tabla.especies.final$formula == 1,  "species1.area",
+                               ifelse(tabla.especies.final$formula == 2,  "species2.area", NA
+                               ))
+
+tabla.especies.final$year = ifelse(tabla.especies.final$year == 1,  "10",
+                            ifelse(tabla.especies.final$year == 2,  "11",
+                            ifelse(tabla.especies.final$year == 3,  "12",
+                            ifelse(tabla.especies.final$year == 4,  "13", NA
+                            ))))
+
+tabla.especies.final$species.int = ifelse(tabla.especies.final$species.int == 1,  "AF.AS/F.F",
+                                   ifelse(tabla.especies.final$species.int == 2,  "CG.AS/F.F",
+                                   ifelse(tabla.especies.final$species.int == 3,  "AS.AS/M.F",
+                                   ifelse(tabla.especies.final$species.int == 4,  "AF.AS/M.F",
+                                   ifelse(tabla.especies.final$species.int == 5,  "CG.AS/M.F",
+                                   ifelse(tabla.especies.final$species.int == 6,  "CG.AF/F.F",
+                                   ifelse(tabla.especies.final$species.int == 7,  "AF.AF/M.F",
+                                   ifelse(tabla.especies.final$species.int == 8,  "CG.AF/M.F",
+                                   ifelse(tabla.especies.final$species.int == 9,  "CG.CG/M.F",
+                                   ifelse(tabla.especies.final$species.int == 10, "AF.AS/M.M",
+                                   ifelse(tabla.especies.final$species.int == 11, "CG.AS/M.M",
+                                   ifelse(tabla.especies.final$species.int == 12, "CG.AF/M.M", NA
+                                   ))))))))))))
+
+tabla.especies.final <- tabla.especies.final |> 
+  separate(col = species.int, into = c("species", "sex"), sep = "\\/", remove = F)
+
+#Separamos tabla.especies.final en 2 data.frame según el área calculada
+tabla.especies1.final <- subset(tabla.especies.final, tabla.especies.final$formula == "species1.area")
+tabla.especies2.final <- subset(tabla.especies.final, tabla.especies.final$formula == "species2.area")
+
+#Nos quedamos sólo con la primera de las especies del emparejamiento
+tabla.especies1.final <- tabla.especies1.final %>% 
+  mutate(species = sub("\\..*", "", species))
+
+#Hacemos lo mismo con la segunda especie
+tabla.especies2.final <- tabla.especies2.final %>% 
+  mutate(species = sub(".*\\.", "", species))
+
+#Unimos las tablas de nuevo en una
+tabla.especies.final <- merge(x = tabla.especies1.final, y = tabla.especies2.final, all = T)
+
+head(tabla.especies.final)
+```
+
+## Resultados
+
+### Área total por especie
+
+```{r Plot area especies}
+ggplot(data = tabla.especies.final, aes(x = species, y = value)) +
+  geom_boxplot(fill = "#00BFC4", color = "#3F3F3F", alpha = 0.8) +
+  theme_bw() +
+  labs(x = "Especies", y = "Area") +
+  theme(
+    axis.line = element_line(linewidth = 0.5),
+    axis.text.x = element_text(size = 12, color = "#3F3F3F", angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 12, color = "#3F3F3F"),
+    axis.title = element_text(size = 14, color = "#3F3F3F", face = "bold"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    legend.position = "none",
+    plot.title = element_text(size = 16, color = "#3F3F3F", face = "bold"),
+    plot.subtitle = element_text(size = 14, color = "#3F3F3F")
+  ) +
+  ggtitle("Área de distribución por especie")
+```
+
+### Porcentaje de solapamiento entre especies a lo largo del tiempo
+
+```{r Subset per.overlap}
+
+per.overlap <- subset(tabla.solapamientos.final, tabla.solapamientos.final$formula == "%overlap")
+
+per.overlap.AS <- subset(per.overlap, species %in% c("AS.AS", "AF.AS", "CG.AS"))
+per.overlap.AS.agg <- per.overlap.AS %>%
+  group_by(months, species) %>%
+  summarize(mean_value = mean(value), .groups = "keep")
+
+
+per.overlap.AF <- subset(per.overlap, species %in% c("AF.AF", "AF.AS", "CG.AF"))
+per.overlap.AF.agg <- per.overlap.AF %>%
+  group_by(months, species) %>%
+  summarize(mean_value = mean(value), .groups = "keep")
+
+
+per.overlap.CG <- subset(per.overlap, species %in% c("CG.CG", "CG.AF", "CG.AS"))
+per.overlap.CG.agg <- per.overlap.CG %>%
+  group_by(months, species) %>%
+  summarize(mean_value = mean(value), .groups = "keep")
+```
+
+```{r Grafica per.overlap}
+
+color_palette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00")
+names(color_palette) <- c("AS.AS", "AF.AS", "CG.AS", "AF.AF", "CG.AF", "CG.CG")
+
+colores_species_line_AS <- ggplot(data = per.overlap.AS.agg, aes(x = months, y = mean_value, color = species))+
+  geom_point(aes(), size = 4, alpha = 0.35)+
+  geom_line(linewidth = 1.5)+
+  scale_x_continuous(breaks = c(1:12), labels = c(1:12))+
+  ylab("Area")+
+  ylim(0, 60)+
+  scale_color_manual(values = color_palette, name = "A. silvaticus")+
+  theme_few()
+
+colores_species_line_AF <- ggplot(data = per.overlap.AF.agg, aes(x = months, y = mean_value, color = species))+
+  geom_point(aes(), size = 4, alpha = 0.35)+
+  geom_line(linewidth = 1.5)+
+  scale_x_continuous(breaks = c(1:12), labels = c(1:12))+
+  ylab("Area")+
+  ylim(0, 60)+
+  scale_color_manual(values = color_palette, name = "A. flavicolis")+
+  theme_few()
+
+colores_species_line_CG <- ggplot(data = per.overlap.CG.agg, aes(x = months, y = mean_value, color = species))+
+  geom_point(aes(), size = 4, alpha = 0.35)+
+  geom_line(linewidth = 1.5)+
+  scale_x_continuous(breaks = c(1:12), labels = c(1:12))+
+  ylab("Area")+
+  ylim(0, 60)+
+  scale_color_manual(values = color_palette, name = "C. glareolus")+
+  theme_few()
+```
+
+```{r colores_species_line_AS}
+
+colores_species_line_AS
+```
+
+```{r colores_species_line_AF}
+
+colores_species_line_AF
+```
+
+```{r colores_species_line_CG}
+
+colores_species_line_CG
+```
+
+```{r Grid}
+grid.arrange(colores_species_line_AS, colores_species_line_AF, colores_species_line_CG, nrow = 3)
+```
+
+### Diferencias en porcentaje de solapamiento según sexo
+
+```{r Grafica sexo}
+per.overlap.sex <- subset(per.overlap, year %in% c("10", "11", "12"))
+
+my_palette <- c("#EDB98A", "#CBB5C5", "#A1D5D5")
+
+ggplot(data = per.overlap.sex, aes(x = sex, y = value, fill = sex)) +
+  geom_boxplot(alpha = 0.8, outlier.shape = NA) +
+  facet_grid(~ year, scales = "free_x", space = "free_x") +
+  scale_fill_manual(values = my_palette) +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        panel.border = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        legend.box = "horizontal",
+        legend.direction = "horizontal") +
+  xlab("") +
+  ylab("Value") +
+  labs(title = "Porcentaje de solapamiento por sexos")
+```
+
+## Discusión

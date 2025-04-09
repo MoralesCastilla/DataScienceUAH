@@ -39,14 +39,14 @@ theme_set(theme_bw())
 ############################### ##
 
 ##' busca, descarga y lee datos de temperaturas máximas diarias para 
-##' toda Europa, correspondientes al periodo 1980-1984
+##' toda Europa, correspondientes al periodo 1980-1994
 ##' https://surfobs.climate.copernicus.eu/dataaccess/access_eobs.php#datafiles 
 ##' 
 
-Puede q sea del 1970 en vez de 1980
-.
 
-##' lee datos de Parques Nacionales de España (en github)
+
+
+##' Leemos los datos de Parques Nacionales de España (en github)
 ##' 
 
 

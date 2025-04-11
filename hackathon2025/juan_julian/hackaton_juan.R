@@ -395,15 +395,46 @@ temp_avist_don_enero <- extract(temp_max_81_enero_spain_mask,coords_lince_don)
 
 temp_avist_don_julio <- extract(temp_max_81_julio_spain_mask,coords_lince_don)
 
-  # Elaboramos un dataframe con las mediciones de las temperaturas para
-    # confeccionar gráficos.
+  # Usamos la función "colmeans()" para obtener la media de cada día.
 
-dataframe_temp_avist_81_don <- data.frame(temp_max_enero = temp_avist_don_enero,
-                                          temp_max_julio = temp_avist_don_julio)
+temp_avist_don_enero_media <- colMeans(temp_avist_don_enero, na.rm = TRUE)
 
-ggplot(dataframe_temp_avist_81_don) +
-  geom_line(aes(x= temp_max_julio, y = temp_max_enero))
+temp_avist_don_julio_media <- colMeans(temp_avist_don_julio, na.rm = TRUE)
+
+  # Elaboramos un dataframe con las medias calculadas.
+
+dataframe_temp_avist_81_don_media <- data.frame(t_enero = temp_avist_don_enero_media,
+                                                t_julio = temp_avist_don_julio_media,
+                                                dia = c(1:32))
+
+rownames(dataframe_temp_avist_81_don_media)
+
+dataframe_temp_avist_81_don_media <- dataframe_temp_avist_81_don_media[-1,]
+  # Elaboramos un mapa de dispersión para ver cómo se relacionan ambas temperaturas.
+
+ggplot(dataframe_temp_avist_81_don_media)+
   
+  geom_point(aes(x = dia, y = t_enero), col = "turquoise") +
+  geom_line(aes(x = dia, y = t_enero), col = "turquoise") +
+  
+  geom_point(aes(x = dia, y = t_julio), col = "darkred") +
+  geom_line(aes(x = dia, y = t_julio), col = "darkred") 
+
+  # Podemos observar que las temperaturas en julio son mayores por motivos obvios
+    # y también que no siguen un mismo patrón.
+
+library(tidyr)
+dataframe_temp_avist_81_don_media_long <- pivot_longer(dataframe_temp_avist_81_don_media, cols = c(t_enero, t_julio))
+
+ggplot(dataframe_temp_avist_81_don_media_long, aes (x = as.character(name), y = value, col = name)) +
+  geom_boxplot()
+
+  # Con el boxplot se confirma lo que se había visto en el gráfico de dispersión
+    # que es que las temperaturas de julio son más altas que las de enero.
+
+
+  # Podemos observar que las temperaturas en julio son mayores por motivos obvios
+    # y también que no siguen un mismo patrón.
 
 ##' 3.b. Haz un mapa que compare la media de las temperaturas máximas del mes de 
 ##' enero de 1981 con las temperaturas medias del mes de enero. ¿en qué parte de 
